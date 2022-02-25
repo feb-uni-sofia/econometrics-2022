@@ -8,9 +8,10 @@
 - Tuesday, 15:00-16-30 (Bulgarian), Skype link: [https://join.skype.com/IfDdQP4IJIRy](https://join.skype.com/IfDdQP4IJIRy)
 
 2. Grading
-  TBA
+
+TBA
   
-3. Software: 
+3. Software
 
 - R: [https://cran.r-project.org/bin/windows/base/](https://cran.r-project.org/bin/windows/base/)
 - R Studio: [https://www.rstudio.com/products/rstudio/download/](https://www.rstudio.com/products/rstudio/download/)
