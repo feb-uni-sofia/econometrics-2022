@@ -6,7 +6,12 @@ output: html_document
 ---
 
 ```{r setup}
-2 * 6
+## Run once to install the tidyverse package
+install.packages("tidyverse")
+```
+
+```{r}
+library(tidyverse)
 ```
 
 
