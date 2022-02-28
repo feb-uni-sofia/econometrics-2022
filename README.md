@@ -34,6 +34,8 @@ for you operating system and install it (again, do not change the default settin
 
 [R Studio download](https://rstudio.com/products/rstudio/download/)
 
+[Git](https://git-scm.com/download)
+
 ## Software tutorials
 
 [Introduction to R Markdown](https://rmarkdown.rstudio.com/articles_intro.html)
