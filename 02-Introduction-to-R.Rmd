@@ -79,14 +79,25 @@ earnings <- read_csv("https://raw.githubusercontent.com/feb-uni-sofia/econometri
 New column called "height_cm"
 
 ```{r}
-earnings %>%
+earnings <- earnings %>%
   mutate(
     height_cm =  2.54 * height,
     weight_kg = 0.45 * weight
-  )
+  ) %>%
+  select(height_cm, weight_kg, ethnicity)
+```
+
+## Data summaries
+
+```{r}
+mean(earnings$height_cm)
 ```
 
 
+$$
+x_1, x_2,\ldots, x_n\\
+\bar{x} = \frac{1}{n}\sum_{i = 1}^{n} x_i
+$$
 
 
 
