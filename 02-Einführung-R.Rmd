@@ -1,0 +1,146 @@
+---
+title: "Untitled"
+author: "Boyko Amarov"
+date: "3/14/2022"
+output: html_document
+---
+
+Shortcut: Ctrl-Alt-i
+
+```{r}
+1 + 4
+3 - 2
+2 * 8
+2 / 8
+2 ^ 4
+```
+
+
+```{r}
+## Zuweisungsoperator: Alt - 
+y <- 34
+```
+
+```{r}
+y - 40
+```
+
+```{r}
+x <- c(1, 4)
+```
+
+
+```{r}
+## Average of two number
+mean(x)
+```
+
+
+```{r}
+## Dokumentation
+?mean
+```
+
+## Text
+
+```{r}
+z <- "Hello, world!"
+```
+
+
+## Logical values
+
+```{r}
+2 < 5
+2 > 5
+"Text 2" == "Text 2"
+```
+
+```{r}
+z == "Text 2"
+```
+
+## Data
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+earnings <- read_csv("https://raw.githubusercontent.com/feb-uni-sofia/econometrics2021/main/data/earnings.csv")
+```
+
+
+- _height_ (numeric): Größe in Inch (1 inch = 2.54 cm)
+- _weight_ (numeric): Gewicht in Pounds (1 pound $\approx$ 0.45 kilograms)
+- _male_ (numeric): 1: Mann, 0 Frau
+- _earn_ (numeric): Jahreseinkommen in USD
+- _earnk_ (numeric): Jahreseinkommen in 1000 USD
+- _ethnicity_ (character): Ethnische Zugehörigkeit
+- _age_ (numeric): Alter (Jahre)
+
+
+```{r}
+earnings <- mutate(
+  earnings,
+  height_cm = 2.54 * height,
+  weight_kg = 0.45 * weight
+)
+
+earnings1 <- select(earnings, height_cm, weight_kg)
+```
+
+
+```{r}
+earnings1 <- earnings %>% 
+  mutate(
+    height_cm = 2.54 * height,
+    weight_kg = 0.45 * weight
+) %>%
+  select(height_cm, weight_kg)
+```
+
+
+## Datenbeschreibung
+
+### Lage
+
+Mittelwert
+
+```{r}
+mean(earnings1$height_cm)
+```
+
+$$
+x = (x_1, x_2,\ldots, x_n)\\
+\bar{x} = \frac{1}{n}\sum_{i = 1}^{n} x_i
+$$
+
+$n = 1816$.
+
+
+### Streuung
+
+```{r}
+max(earnings$height_cm)
+min(earnings$height_cm)
+```
+```{r}
+max(earnings$height_cm) - min(earnings$height_cm)
+```
+
+$$
+S^2_x = \frac{1}{n - 1} \sum_{i = 1}^{n}(x_i - \bar{x})^2\\
+S_x = \sqrt{S^2_x}: \text{Standardabweichung}
+$$
+```{r}
+var(earnings$height_cm)
+```
+
+```{r}
+sqrt(var(earnings$height_cm))
+```
+
+```{r}
+sd(earnings$height_cm)
+```
