@@ -1,0 +1,136 @@
+---
+title: "Untitled"
+author: "Boyko Amarov"
+date: "3/14/2022"
+output: html_document
+---
+
+Ctrl-Alt-i
+
+```{r}
+1 + 4
+3 - 2
+2 * 8
+2 / 8
+2 ^ 4
+```
+
+
+```{r}
+## Shortcut for the assignment operator: Alt - 
+y <- 34
+x <- c(1, 3)
+x
+```
+
+```{r}
+## Average of two number
+mean(y)
+```
+
+
+```{r}
+## Opens the documentation for a function
+?mean
+```
+
+## String values
+
+```{r}
+z <- "Hello, world!"
+# z + 1
+```
+
+
+## Logical values
+
+```{r}
+xTrue <- 2 < 3
+xFalse <- 2 == 3
+
+TRUE + FALSE
+```
+
+## Data
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+earnings <- read_csv("https://raw.githubusercontent.com/feb-uni-sofia/econometrics2021/main/data/earnings.csv")
+```
+
+- _height_ (numeric): height in inches (1 inch = 2.54 cm)
+- _weight_ (numeric): weight in pounds (1 pound $\approx$ 0.45 kilograms)
+- _male_ (numeric): 1 if a person is male, 0 otherwise
+- _earn_ (numeric): annual income in USD
+- _earnk_ (numeric): annual income in 1000 USD
+- _ethnicity_ (character): ethnicity
+- _age_ (numeric): Age of the person in years
+
+
+```{r}
+##
+earnings <- earnings %>%
+  mutate(
+    height_cm = 2.54 * height,
+    weight_kg = 0.45 * weight
+  )
+```
+
+## Basic data summaries
+
+### Location
+
+```{r}
+## Average height (in cm)
+mean(earnings$height_cm)
+```
+
+
+$$
+x = (x_1, x_2,\ldots, x_n)\\
+\bar{x} = \frac{1}{n}\sum_{i = 1}^{n} x_i
+$$
+$n = 1816$.
+
+### Variation
+
+```{r}
+max(earnings$height_cm)
+min(earnings$height_cm)
+```
+```{r}
+max(earnings$height_cm) - min(earnings$height_cm)
+```
+
+
+```{r}
+range(earnings$height_cm)
+```
+
+```{r}
+summary(earnings$height_cm)
+```
+
+Variance
+
+$$
+S^2_x = \frac{1}{n - 1} \sum_{i = 1}^{n}(x_i - \bar{x})^2\\
+S_x = \sqrt{S^2_x}: \text{Standard deviation}
+$$
+
+```{r}
+var(earnings$height_cm)
+```
+
+```{r}
+sqrt(var(earnings$height_cm))
+```
+
+```{r}
+sd(earnings$height_cm)
+```
+
