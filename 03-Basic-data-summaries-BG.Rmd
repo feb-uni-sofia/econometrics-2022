@@ -11,11 +11,11 @@ output: html_document
 ## Load packages
 library(tidyverse)
 ## Read the data
-earnings <- read.csv(
+earnings <- read_csv(
   "https://raw.githubusercontent.com/feb-uni-sofia/econometrics2021/main/data/earnings.csv"
   ) %>%
   mutate(
-    gender = factor(male, levels = c(0, 1), labels = c("Male", "Female"))
+    gender = ifelse(male == 1, "Male", "Female")
   )
 ```
 
@@ -55,20 +55,64 @@ The average height of the persons was 169 cm.
 ```{r}
 summary(earnings$height_cm)
 ```
+
+1-ви квартил: около 1/4 от клиентите са били по-ниски от 162.6 см.
+3-ви квартил: около 3/4 от клиентите са били по-ниски от 175.9 см.
+
 ```{r}
-mean(earnings$height_cm < 162.6)
+earnings <- earnings %>%
+  mutate(
+    is_less_than_1qrt = height_cm < 162.6
+  ) %>%
+  select(height_cm, is_less_than_1qrt, everything())
+
+## Дял на клиенти с ръст по-нисък от 162.6 см.
+mean(earnings$is_less_than_1qrt)
 ```
+
+```{r}
+640 / 1816
+```
+
+
 The tallest person was 208 cm tall. The shortest person was 144.8 cm. Median equals 167.6 cm meaning that: _about_ half of the persons
 in the survey were shorter than 167.6 cm (median/2nd quartile/0.5 quantile/50% percentile). 1st quartile equals 162.6: _roughly_ (because of rounding in height value) one quarter (25%) were shorter than 162.6 cm. 3th quartile equals 175.9 cm: _about_ 75% (three quarters) of the persons were shorter than 175.9 cm.
 
 ## Box-Whiskers plot
 
 ```{r}
+ggplot(
+  data = earnings,
+  aes(
+    x = height_cm
+  )
+) + 
+  geom_boxplot() +
+  labs(
+    x = "Ръст в см."
+  )
+```
+
+```{r}
+ggplot(
+  data = earnings, 
+  aes(
+    x = height_cm, 
+    y = gender
+    )
+  ) +
+    geom_boxplot() +
+    labs(
+      x = "Ръст (см.)",
+      y = "Пол"
+    )
+```
+
+
+```{r}
 ggplot(data = earnings, aes(x = height_cm, y = ethnicity)) + geom_boxplot()
 ```
-```{r}
-ggplot(data = earnings, aes(x = height_cm, y = factor(male))) + geom_boxplot()
-```
+
 
 ```{r}
 ## Extreme case of no variation in the data (all values equal)
@@ -94,13 +138,6 @@ There are 180 black persons in the dataset.
 
 ## Measurement scales
 
-```{r}
-earnings <- earnings %>%
-  mutate(
-    sex = ifelse(male == 1, "Male", "Female")
-  )
-```
-
 Categorical scales:
 
 1. **Nominal**: Values of the variable have no numeric meaning. Values are only labels indicating group membership.
@@ -118,15 +155,39 @@ Numeric scales
 Scatter plot
 
 ```{r}
-NA + 2
+mean(earnings$weight_kg, na.rm = TRUE)
 ```
 
+```{r}
+NA + 2
+```
 
 ```{r}
 ## Compute the mean by simply omitting the missing values
 mean(earnings$weight_kg, na.rm = TRUE)
 mean(earnings$height_cm)
 ## NA: missing/undefined value
+```
+
+```{r}
+ggplot(
+  data = earnings,
+  aes(
+    x = weight_kg, 
+    y = height_cm
+    )
+  ) +
+  geom_point(
+    position = "jitter",
+    size = 2/5,
+    alpha = 0.4
+  ) +
+  labs(
+    title = "Точкова диаграма",
+    y = "Ръст (см.)",
+    x = "Тегло (кг.)"
+  ) +
+  geom_smooth(method = "lm")
 ```
 
 
