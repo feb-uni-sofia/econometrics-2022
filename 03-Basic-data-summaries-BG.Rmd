@@ -11,7 +11,12 @@ output: html_document
 ## Load packages
 library(tidyverse)
 ## Read the data
-earnings <- read.csv("https://raw.githubusercontent.com/feb-uni-sofia/econometrics2021/main/data/earnings.csv")
+earnings <- read.csv(
+  "https://raw.githubusercontent.com/feb-uni-sofia/econometrics2021/main/data/earnings.csv"
+  ) %>%
+  mutate(
+    gender = factor(male, levels = c(0, 1), labels = c("Male", "Female"))
+  )
 ```
 
 
