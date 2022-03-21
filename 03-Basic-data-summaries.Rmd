@@ -10,6 +10,7 @@ output: html_document
 ```{r, setup, message=FALSE}
 ## Load packages
 library(tidyverse)
+
 ## Read the data
 earnings <- read_csv(
   "https://raw.githubusercontent.com/feb-uni-sofia/econometrics2021/main/data/earnings.csv"
@@ -17,11 +18,6 @@ earnings <- read_csv(
   mutate(
     gender = ifelse(male == 1, "Male", "Female")
   )
-```
-
-
-```{r}
-glimpse(earnings)
 ```
 
 Data description
@@ -47,31 +43,52 @@ earnings <- earnings %>%
   )
 ```
 
+First look into the data set.
+
+```{r}
+glimpse(earnings)
+```
+
+Arithmetic average
+
 ```{r}
 mean(earnings$height_cm)
 ```
+
 The average height of the persons was 169 cm.
 
 ```{r}
 summary(earnings$height_cm)
 ```
 
-1-ви квартил: около 1/4 от клиентите са били по-ниски от 162.6 см.
-3-ви квартил: около 3/4 от клиентите са били по-ниски от 175.9 см.
+The median is 167.6 cm: this means that _about_ 50% of the customers were shorter than
+167.6 cm.
+
+1st Qu.: 1st quartile (quarter, four parts): about 25% of the customers were shorter than 162.6 cm. About 75% of the customers were taller than 162.6 cm.
+
+3rd Qu.: 3rd quartile (quarter, four parts): about 75% of the customers were shorter than 175.9 cm. About 25% of the customers were taller than 175.9 cm.
+
+
+Compute the share of customers who were shorter than the 1st quartile.
+
 
 ```{r}
 earnings <- earnings %>%
   mutate(
-    is_less_than_1qrt = height_cm < 162.6
-  ) %>%
-  select(height_cm, is_less_than_1qrt, everything())
+    is_less_than_1q = height_cm < 162.6  
+  )
 
-## Дял на клиенти с ръст по-нисък от 162.6 см.
-mean(earnings$is_less_than_1qrt)
+## Number of observations that meet the condition: height_cm < 162.6
+
+sum(earnings$is_less_than_1q)
 ```
 
 ```{r}
 640 / 1816
+```
+
+```{r}
+mean(earnings$is_less_than_1q)
 ```
 
 
@@ -81,15 +98,21 @@ in the survey were shorter than 167.6 cm (median/2nd quartile/0.5 quantile/50% p
 ## Box-Whiskers plot
 
 ```{r}
+## ggplot: grammar of graphics
+
 ggplot(
+  ## Data source
   data = earnings,
+  ## Aesthetics
   aes(
+    ## x-axis
     x = height_cm
   )
 ) + 
   geom_boxplot() +
   labs(
-    x = "Ръст в см."
+    title = "Boxplot",
+    x = "Height (cm)"
   )
 ```
 
@@ -103,8 +126,8 @@ ggplot(
   ) +
     geom_boxplot() +
     labs(
-      x = "Ръст (см.)",
-      y = "Пол"
+      x = "Height (cm)",
+      y = "Gender"
     )
 ```
 
@@ -123,6 +146,25 @@ ggplot(data = data.frame(x = c(2, 2, 2, 2, 2, 2, 2)), aes(x = x)) + geom_boxplot
 1. Location: (measured by the median)
 2. Spread: (distance between min/max and between the 1st and the 3the quartiles)
 3. Outliers: observations that are different from the rest of the observations (persons)
+
+
+```{r}
+earnings1 <- earnings %>%
+  mutate(
+    male1 = male + 1
+  ) %>%
+  select(male, male1, gender, ethnicity)
+```
+
+```{r}
+summary(earnings1$male)
+```
+
+
+```{r}
+summary(earnings1$male1)
+```
+
 
 For _categorical_ variables we use frequency tables as a summary.
 
@@ -179,13 +221,13 @@ ggplot(
   ) +
   geom_point(
     position = "jitter",
-    size = 2/5,
-    alpha = 0.4
+    size = 1 / 5,
+    alpha = 0.5
   ) +
   labs(
-    title = "Точкова диаграма",
-    y = "Ръст (см.)",
-    x = "Тегло (кг.)"
+    title = "Scatterplot",
+    y = "Height (cm)",
+    x = "Weight (kg)"
   ) +
   geom_smooth(method = "lm")
 ```
