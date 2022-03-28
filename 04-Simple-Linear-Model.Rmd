@@ -1,7 +1,7 @@
 ---
-title: "Week4"
+title: "Simple Linear Model"
 author: "Boyko Amarov"
-date: "3/30/2021"
+date: "3/28/2022"
 output: html_document
 ---
 
@@ -31,13 +31,16 @@ summary(invoices$Time)
 ```{r}
 ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
   geom_point() +
-  geom_vline(xintercept = c(80, 250), lty = 2, alpha = 0.3) +
-  geom_vline(xintercept = 120, lty = 2) +
-  geom_hline(yintercept = 2.110) +
-  geom_abline(intercept = 0.1, slope = 0.015, colour = "steelblue2")
+  geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
+  scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
+  geom_abline(slope = 0.015, intercept = 0.1)
+# +
+  # geom_vline(xintercept = 120, lty = 2) +
+  # geom_hline(yintercept = 2.110) +
+  # geom_abline(intercept = 0.1, slope = 0.015, colour = "steelblue2")
 ```
 
-Estimate the expected processing time for 80, 120 and 250 invoices (3 estimates).
+Estimate the expected processing time for 50, 120, 201, 250, 400 invoices (3 estimates).
 
 Strategy 1: Use the average processing time for the predictions
 
@@ -49,8 +52,57 @@ $$
 Assume a simple (linear) functional relationship
 
 $$
-y = 0.1 + 0.015x
+y_i = 0.1 + 0.015x_i
 $$
+This equation cannot describe the relation between the processing time and the
+number of invoices is too restrictive. It implies that all dots in the scatterplot
+lie on the line with intercept 0.1 and with a slope equal to 0.015.
+
+
+$$
+y_i = 0.1 + 0.015x_i + u_i
+$$
+
+The extra term $u_i$ accounts for the deviations of the observed processing times from the line.
+
+Assume that $u_i$ follows a normal distribution with expected value (mean) of zero and variance $\sigma^2$. We also that $u_i$ are independent and that $u_i$ are independent of $x_i$.
+
+$$
+u_i \sim N(0, \sigma^2)
+$$
+
+Under the assumption that $E(u_i) = 0$ we can compute the conditional expected
+value of $y_i$. We use the linearity of the expected value:
+
+$$
+E(y_i|x_i) = E(0.1 + 0.015x_i + u_i|x_i)\\
+E(y_i|x_i) = E(0.1|x_i) + E(0.015x_i|x_i) + E(u_i|x_i) \\
+E(y_i|x_i) = 0.1 + 0.015x_i + 0 \\
+E(y_i|x_i) = 0.1 + 0.015x_i
+$$
+The _expected_ processing time $E(y_i|x_i)$ is equal to $0.1 + 0.015x_i$.
+
+$$
+y_i = \underbrace{0.1 + 0.015x_i}_{\text{Systematic part}} + \underbrace{u_i}_{\text{Random part}}
+$$
+## Simulation
+
+```{r}
+n <- 30
+x <- round(seq(10, 250, length.out = n), 0)
+## Select values at random from a standard 
+## normal distribution, i.e. mean = 0, stanard dev. = 1
+u <- rnorm(n, mean = 0, sd = 1)
+y <- 0.1 + 0.015 * x + u
+
+tibble(x = x, y = y) %>%
+  ggplot(aes(x = x, y = y)) + 
+    geom_point() +
+    geom_abline(intercept = 0.1, slope = 0.015) +
+    xlim(c(0, 250))
+```
+
+
 
 
 
