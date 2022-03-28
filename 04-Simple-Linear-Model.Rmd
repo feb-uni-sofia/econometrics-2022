@@ -21,7 +21,7 @@ Variables description:
 - `Invoices` (numeric): number of invoices
 - `Time` (numeric): Time needed to process the invoices (hours)
 
-Task is to predict the time needed to process 50, 120, 200, 250 invoices.
+Task is to predict the time needed to process 50, 120, 200, 250, 400 invoices.
 
 ```{r}
 summary(invoices$Time)
@@ -33,7 +33,10 @@ ggplot(data = invoices, aes(x = Invoices, y = Time)) +
   geom_point() +
   geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
   scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
-  geom_abline(slope = 0.015, intercept = 0.1)
+  geom_abline(slope = 0.015, intercept = 0.1) +
+  geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick") +
+  ylim(c(0, 7))
+
 # +
   # geom_vline(xintercept = 120, lty = 2) +
   # geom_hline(yintercept = 2.110) +
@@ -54,6 +57,7 @@ Assume a simple (linear) functional relationship
 $$
 y_i = 0.1 + 0.015x_i
 $$
+
 This equation cannot describe the relation between the processing time and the
 number of invoices is too restrictive. It implies that all dots in the scatterplot
 lie on the line with intercept 0.1 and with a slope equal to 0.015.
@@ -75,10 +79,10 @@ Under the assumption that $E(u_i) = 0$ we can compute the conditional expected
 value of $y_i$. We use the linearity of the expected value:
 
 $$
-E(y_i|x_i) = E(0.1 + 0.015x_i + u_i|x_i)\\
-E(y_i|x_i) = E(0.1|x_i) + E(0.015x_i|x_i) + E(u_i|x_i) \\
-E(y_i|x_i) = 0.1 + 0.015x_i + 0 \\
-E(y_i|x_i) = 0.1 + 0.015x_i
+E(y_i) = E(0.1 + 0.015x_i + u_i)\\
+E(y_i) = E(0.1) + E(0.015x_i) + E(u_i) \\
+E(y_i) = 0.1 + 0.015x_i + 0 \\
+E(y_i) = 0.1 + 0.015x_i
 $$
 The _expected_ processing time $E(y_i|x_i)$ is equal to $0.1 + 0.015x_i$.
 
@@ -87,12 +91,29 @@ y_i = \underbrace{0.1 + 0.015x_i}_{\text{Systematic part}} + \underbrace{u_i}_{\
 $$
 ## Simulation
 
+Normal distribution
+
+```{r}
+# r: random, norm: normal
+# mean: expected value of the distribution, 
+# sd: standard deviation of the distribution = square root of the variance
+u <- rnorm(1000, mean = 0, sd = 1)
+u
+```
+
+```{r}
+tibble(u) %>%
+  ggplot(aes(x = u)) +
+    geom_histogram(bins = 20)
+```
+
+
 ```{r}
 n <- 30
 x <- round(seq(10, 250, length.out = n), 0)
 ## Select values at random from a standard 
-## normal distribution, i.e. mean = 0, stanard dev. = 1
-u <- rnorm(n, mean = 0, sd = 1)
+## normal distribution, i.e. mean = 0, standard dev. = 0.5
+u <- rnorm(n, mean = 0, sd = 0.5)
 y <- 0.1 + 0.015 * x + u
 
 tibble(x = x, y = y) %>%
