@@ -21,11 +21,7 @@ Variables description:
 - `Invoices` (numeric): number of invoices
 - `Time` (numeric): Time needed to process the invoices (hours)
 
-Task is to predict the time needed to process 50, 120, 200, 250, 400 invoices.
-
-```{r}
-summary(invoices$Time)
-```
+Task is to predict the time needed to process 50, 120, 201, 250, 400 invoices.
 
 
 ```{r}
@@ -34,8 +30,10 @@ ggplot(data = invoices, aes(x = Invoices, y = Time)) +
   geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
   scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
   geom_abline(slope = 0.015, intercept = 0.1) +
-  geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick") +
   ylim(c(0, 7))
+# +
+  # geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick") +
+
 
 # +
   # geom_vline(xintercept = 120, lty = 2) +
@@ -89,6 +87,10 @@ The _expected_ processing time $E(y_i|x_i)$ is equal to $0.1 + 0.015x_i$.
 $$
 y_i = \underbrace{0.1 + 0.015x_i}_{\text{Systematic part}} + \underbrace{u_i}_{\text{Random part}}
 $$
+$$
+y_i = E(y_i) + u_i
+$$
+
 ## Simulation
 
 Normal distribution
@@ -97,9 +99,15 @@ Normal distribution
 # r: random, norm: normal
 # mean: expected value of the distribution, 
 # sd: standard deviation of the distribution = square root of the variance
+
 u <- rnorm(1000, mean = 0, sd = 1)
-u
+# u
 ```
+
+```{r}
+mean(u)
+```
+
 
 ```{r}
 tibble(u) %>%
@@ -121,167 +129,4 @@ tibble(x = x, y = y) %>%
     geom_point() +
     geom_abline(intercept = 0.1, slope = 0.015) +
     xlim(c(0, 250))
-```
-
-
-
-
-
-$$
-y[\text{hours}] = 0.1[\text{hours}] + \underbrace{0.015\left[\frac{\text{hours}}{\text{invoice}}\right] x[\text{numb. invoices}]}_{\text{hours}}\\
-x = 0 \implies y [\text{hours}] = 0.1 [\text{hours}]
-$$
-
-
-$$
-50 [m^2] \text{ room}\\
-\text{rent } 2[\frac{BGN}{m^2}]\\
-2 [\frac{BGN}{m^2}] \times 50 [m^2] = 100 [BGN]
-$$
-
-$$
-y[\text{costs}] = 0.1[\text{fixed costs}] + 0.015[\text{marginal cost}]x[\text{production}]
-$$
-
-$$
-y_{x = 120} = 0.1 + 0.015 \times 120 = 1.9 [\text{hours}]
-$$
-
-$$
-y = \underbrace{0.1}_{\text{intercept}} + \underbrace{0.015}_{\text{slope}}x
-$$
-
-$$
-y_i  = \underbrace{0.1 + 0.015x_i}_{\text{line, systematic part}} + \underbrace{e_i}_{\text{deviation from the line, stochastic (random) part}}
-$$
-
-
-
-```{r}
-x <- 190 ## Number of invoices
-e <- runif(1, min = -1, max = 1) ## Uniform distribution on [-1, 1]
-e
-y <- 0.1 + 0.015 * x + e
-y
-```
-
-```{r}
-rand_numbers <- runif(10, min = -1, max = 1)
-# rand_numbers
-paste("Average result from a game:", mean(rand_numbers))
-rand_numbers
-```
-
-Assume that the deviation part is zero on average.
-
-$$
-E(e_i) = 0 \text{ assumption} \implies \\
-E(y_i) = E(0.1 + 0.015x_i + e_i) =\\ 
-E(y_i) = E(0.1) + E(0.015x_i) + E(e_i) = \\
-E(y_i) = 0.1 + 0.015x_i
-$$
-
-## Coefficient estimation
-
-$$
-y = 0.1 + 0.015x + e_i
-$$
-Predicted y (expected value of y) for every observation
-
-$$
-\hat{y}_i = 0.1 + 0.015x_i
-$$
-
-
-```{r}
-ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
-  geom_point() +
-  geom_abline(intercept = 0.6, slope = 0.015, colour = "steelblue2") +
-  geom_abline(intercept = 0.3, slope = 0.02, colour = "steelblue2", alpha = 0.5) +
-  geom_abline(intercept = 0.6, slope = 0.010, colour = "steelblue2", alpha = 0.5) +
-  geom_abline(intercept = 2, slope = 0.015, colour = "firebrick")
-```
-
-
-$$
-y_i - \hat{y_i} \text{ residual for day } i
-$$
-```{r}
-## Illustration only
-invoices <- invoices %>%
-  mutate(
-    y_predicted_1 = 0.1 + 0.015 * Invoices
-  )
-ggplot(data = invoices, aes(x = Invoices, y = Time)) +
-  geom_point(size = 2) +
-  geom_segment(
-    aes(xend = Invoices, yend = y_predicted_1),
-    size = 1 / 4
-  ) +
-  # geom_point(data = data.frame(x = c(201, 201), y = c(4.5, 2)), aes(x = x, y = y), shape = 1) +
-  # geom_segment(data = data.frame(x = c(201, 201), y = c(4.5, 2)),
-  #              aes(x = x, y = y, xend = 201, yend = 0.1 + 0.015 * 201), lty=2) +
-  geom_abline(intercept = 0.1, slope = 0.015, color = "steelblue")
-```
-How to aggregate each individual deviation (residual)? One possible approach is to simply sum the deviations
-
-$$
-\sum_{i = 1}^{n} (y_i - \hat{y}_i)^2
-$$
-
-
-$$
-y_i = \alpha + \beta x_i + e_i\\
-E(y_i) = \alpha + \beta x_i
-$$
-
-
-Find guesses for $\alpha$ and $\beta$ based on the data, so that the distance between
-the predictions and the observations is as small as possible. Let's call our
-"guesses" for $\alpha$ $\hat{\alpha}$ and for $\beta$ $\hat{\beta}$
-
-$$
-\hat{y}_i = \hat{E}(y_i) = \hat{\alpha} + \hat{\beta}x_i \text{ guessed expected value}\\
-(\hat{\alpha}^{OLS}, \hat{\beta}^{OLS}) = \min_{\hat{\alpha}, \hat{\beta}} \sum_{i = 1}^{n}(y_i - \hat{y}_i)^2
-$$
-
-The result of this minimisation is what we call the OLS (ordinary least squares) estimator for $\alpha$ and for $\beta$.
-
-## Application in R
-
-$$
-\underbrace{y_i}_{Time} = \alpha + \beta \underbrace{x_i}_{Invoices} + e_i
-$$
-
-```{r}
-## lm: linear model
-lm(Time ~ 1 + Invoices, data = invoices)
-```
-
-Estimated equation using OLS.
-
-$$
-\hat{\alpha} = 0.64\\
-\hat{\beta} = 0.011\\
-\hat{y}_i =  0.64 + 0.011 x_i
-$$
-We estimate the expected processing time at $x_i$ invoice to be the sum the estimated fixed costs (0.64 hours) plus the estimated marginal costs (0.011 hours/invoice) times the number of invoices ($x_i$).
-
-The expected processing time increases by 0.011 *hours* for each additional invoice.
-
-The expected processing time at zero invoices is 0.64 _hours_.
-
-## Plot the OLS estimated line
-
-```{r}
-ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
-  geom_point() +
-  geom_abline(intercept = 0.1, slope = 0.015, colour = "steelblue2") + 
-  geom_abline(intercept = 0.64, slope = 0.011, colour = "firebrick")
-```
-
-```{r}
-ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
-  geom_point() +
-  geom_smooth(method = "lm")
 ```
