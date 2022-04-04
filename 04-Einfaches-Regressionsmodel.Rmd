@@ -120,3 +120,101 @@ tibble(x = x, y = y) %>%
 ```{r}
 tibble(x, y)
 ```
+Meßeinheiten.
+
+$$
+x_i: \text{ Anzahl von Rechnungen an Tag } i \\
+y_i: \text{ Bearbeitungszeit an Tag } i \text{ (Stunden)} \\
+y_i [Stunden] = 0.1[Stunden] + 0.015 [\frac{Stunden}{Rechnung}] x_i [\#Rechnungen] + u_i [Stunden]
+$$
+## Methode der kleinsten Quadrate
+
+$$
+y_i = 0.1 + 0.015x_i + u_i
+$$
+
+$$
+y_i = \beta_0 + \beta_1 x_i + u_i, \quad \beta_0, \beta_1 \in \mathbf{R}
+$$
+
+Geschätzte Regressionsgerade
+
+$$
+\hat{y}_i = \hat{\beta}_0 + \hat{\beta_1} x_i
+$$
+Residuum
+$$
+r_i = y_i - \hat{y}_i
+$$
+z.B mit den Koeffizienten 0.1; 0.015 ist das Residuum der 1. Beobachtung:
+
+$$
+i = 1, x_1 = 149, y_1 = 2.1\\
+\hat{y}_1 = 0.1 + 0.015 \cdot 149 = 2.335 [Stunden]\\
+r_1 = 2.1 - 2.335 = -0.235
+$$
+Berechnung der Residuen für alle Beobachtungen im Datensatz:
+
+```{r}
+invoices <- invoices %>%
+  mutate(
+    y_hat_manuell = 0.1 + 0.015 * Invoices,
+    residuen_manuell = Time  - y_hat_manuell
+  )
+```
+
+
+$$
+\frac{1}{n}\sum_{i = 1}^{n}r_i = \frac{1}{n}\sum_{i = 1}^{n}(y_i - \hat{y}_i) = \frac{1}{n}\sum_{i = 1}^{n}(y_i - \hat{\beta}_0 - \hat{\beta_1} x_i)
+$$
+
+$$
+\frac{1}{n}\sum_{i = 1}^{n}(y_i - \hat{y}_i) = \frac{1}{n}\sum_{i = 1}^{n}y_i - \frac{1}{n}\sum_{i = 1}^{n}\hat{y}_i
+$$
+
+$$
+\min_{\hat{\beta}_0, \hat{\beta}_1} = RSS(\hat{\beta}_0, \hat{\beta}_1) = \sum_{i = 1}^{n}r_i^2 = \sum_{i = 1}^{n}(y_i - \hat{y}_i)^2
+$$
+
+Residual Sum of Squares: Residuen QuadratSumme. Die Lösung für die Betas heißt die KleinstQuadrateSchätzung (KQ-Schätzung, OLS: ordinary least squares).
+
+$$
+y_i = \beta_0 + \beta_1 x_i + u_i, \quad \beta_0, \beta_1 \in \mathbf{R}
+$$
+
+```{r}
+## lm: Linear Model
+lm(Time ~ 1 + Invoices, data = invoices)
+```
+
+$$
+\hat{\beta}_0 = 0.64171, \hat{\beta}_1 = 0.01129\\
+\hat{y}_i = 0.64171 + 0.01129 x_i
+$$
+
+```{r}
+ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
+  geom_point() +
+  geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
+  scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
+  geom_abline(slope = 0.015, intercept = 0.1) +
+  ylim(c(0, 7)) +
+  geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick") +
+  geom_abline(slope = 0.01129, intercept = 0.64171, color = "steelblue")
+```
+
+```{r}
+invoices %>%
+  mutate(
+    y_hat_manuell = 0.23 - 0.015 * Invoices,
+    residuen_manuell = Time  - y_hat_manuell,
+    y_hat_KQ = 0.64171 + 0.01129 * Invoices,
+    residuen_KQ = Time - y_hat_KQ
+  ) %>%
+  summarise(
+    RSS_manuell = sum(residuen_manuell ^ 2),
+    RSS_KQ = sum(residuen_KQ ^ 2)
+  )
+```
+
+
