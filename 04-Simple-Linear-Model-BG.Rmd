@@ -1,0 +1,303 @@
+---
+title: "Simple Linear Model"
+author: "Boyko Amarov"
+date: "3/28/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+invoices <- read.delim('https://raw.githubusercontent.com/feb-uni-sofia/econometrics2020-solutions/master/data/invoices.txt')
+```
+
+
+```{r}
+glimpse(invoices)
+```
+
+Variables description:
+
+- `Day` (numeric): day
+- `Invoices` (numeric): number of invoices
+- `Time` (numeric): Time needed to process the invoices (hours)
+
+Task is to predict the time needed to process 50, 120, 201, 250, 400 invoices.
+
+
+```{r}
+ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
+  geom_point() +
+  geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
+  scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
+  geom_abline(slope = 0.015, intercept = 0.1) +
+  ylim(c(0, 7)) + 
+  geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick")
+
+
+# +
+  # geom_vline(xintercept = 120, lty = 2) +
+  # geom_hline(yintercept = 2.110) +
+  # geom_abline(intercept = 0.1, slope = 0.015, colour = "steelblue2")
+```
+
+Estimate the expected processing time for 50, 120, 201, 250, 400 invoices (3 estimates).
+
+Strategy 1: Use the average processing time for the predictions
+
+$$
+i = 1,\ldots,n = 30\\
+x_i: \text{ number of invoices on day } i \\
+y_i: \text{ processing time on day } i \\
+$$
+Assume a simple (linear) functional relationship
+
+$$
+y_i = 0.1 + 0.015x_i
+$$
+
+This equation cannot describe the relation between the processing time and the
+number of invoices is too restrictive. It implies that all dots in the scatterplot
+lie on the line with intercept 0.1 and with a slope equal to 0.015.
+
+
+$$
+y_i = 0.1 + 0.015x_i + u_i
+$$
+
+The extra term $u_i$ accounts for the deviations of the observed processing times from the line.
+
+Assume that $u_i$ follows a normal distribution with expected value (mean) of zero and variance $\sigma^2$. We also that $u_i$ are independent and that $u_i$ are independent of $x_i$.
+
+$$
+u_i \sim N(0, \sigma^2)
+$$
+
+Under the assumption that $E(u_i) = 0$ we can compute the conditional expected
+value of $y_i$. We use the linearity of the expected value:
+
+$$
+E(y_i) = E(0.1 + 0.015x_i + u_i)\\
+E(y_i) = E(0.1) + E(0.015x_i) + E(u_i) \\
+E(y_i) = 0.1 + 0.015x_i + 0 \\
+E(y_i) = 0.1 + 0.015x_i
+$$
+The _expected_ processing time $E(y_i|x_i)$ is equal to $0.1 + 0.015x_i$.
+
+$$
+y_i = \underbrace{0.1 + 0.015x_i}_{\text{Systematic part}} + \underbrace{u_i}_{\text{Random part}}
+$$
+$$
+y_i = E(y_i) + u_i
+$$
+
+## Simulation
+
+Normal distribution
+
+```{r}
+# r: random, norm: normal
+# mean: expected value of the distribution, 
+# sd: standard deviation of the distribution = square root of the variance
+
+u <- rnorm(1000, mean = 0, sd = 1)
+# u
+```
+
+```{r}
+mean(u)
+```
+
+
+```{r}
+tibble(u) %>%
+  ggplot(aes(x = u)) +
+    geom_histogram(bins = 20)
+```
+
+
+```{r}
+n <- 30
+x <- round(seq(10, 250, length.out = n), 0)
+## Select values at random from a standard 
+## normal distribution, i.e. mean = 0, standard dev. = 0.5
+u <- rnorm(n, mean = 0, sd = 0.5)
+y <- 0.1 + 0.015 * x + u
+
+tibble(x = x, y = y) %>%
+  ggplot(aes(x = x, y = y)) + 
+    geom_point() +
+    geom_abline(intercept = 0.1, slope = 0.015) +
+    xlim(c(0, 250))
+```
+
+# Interpretation of the linear equation
+
+$$
+i = 1,\ldots,n = 30\\
+x_i: \text{ number of invoices on day } i \\
+y_i: \text{ processing time on day } i \text{ (hours)} \\
+$$
+
+Units of measurement?
+
+$$
+y_i [hours] = 0.1 [hours] + 0.015 [\frac{hours}{invoice}] x_i[\#invoices] + u_i[hours]\\
+$$
+
+$$
+1 [m] \times 2 [m] = 2 [m^2] \text{ example with area} \\ 
+300 [\frac{BGN}{month}]* 2 [months] = 600 [BGN] \text{ example with monthly rent}
+$$
+
+# Ordinary Least Squares
+
+$$
+y_i = 0.1 + 0.015 x_i + u_i\quad \text{black line}\\
+y_i =  0.1 + 0.001 x_i + u_i\quad \text{red line}
+$$
+
+
+```{r}
+ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
+  geom_point() +
+  geom_abline(slope = 0.015, intercept = 0.1) +
+  ylim(c(0, 7)) +
+  geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick")
+```
+
+
+
+$$
+y_i = \beta_0 + \beta_1 x_i + u_i
+$$
+
+where $\beta_0$ and $\beta_1$ are unknown coefficients. Because the coefficients
+are unknown, we must guess these from the data.
+
+
+
+Distance between the regression line (model) and the data (reality).
+
+$$
+\hat{y}_i = \hat{\beta}_0 + \hat{\beta}_1 x_i \text{ regression line (model)}
+$$
+
+For example with $\hat{\beta}_0 = 0.1, \hat{\beta}_1 = 0.015$ and $x = 120$:
+
+
+
+$$
+y_{26} = 2.5, x_{26} = 120\\
+\hat{y}_{26} = 0.1 + 0.015 * 120  = 1.9
+$$
+
+The _observed_ processing time on the 26-th day was 2.5 hours, leading to difference
+of 0.6 hours between observed and predicted processing time. We call this difference the _residual_ (on day 26 in this example).
+
+$$
+r_{26} = y_{26} - \hat{y}_{26} = 2.5 - 1.9 = 0.6 [hours]
+$$
+
+
+```{r}
+invoices <- invoices %>%
+  mutate(
+    y_hat_manual = 0.1 + 0.015 * Invoices,
+    residual_manual = Time - y_hat_manual
+  )
+```
+
+```{r}
+ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
+  geom_point() +
+  geom_abline(slope = 0.015, intercept = 0.1) +
+  ylim(c(0, 7)) + 
+  geom_segment(aes(xend = Invoices, yend = y_hat_manual, ystart = Time))
+```
+
+
+Residual for obs. $i$.
+$$
+r_i = y_i - \hat{y}_i
+$$
+
+Let us formalize the idea that small residuals lead to better prediction.
+
+
+$$
+\frac{1}{n}\sum_{i = 1}^{n}r_i
+$$
+
+
+$$
+\hat{y}_i = \hat{\beta}_0 + \hat{\beta}_1 x_i
+$$
+
+
+$$
+\min_{\hat{\beta}_0, \hat{\beta}_1} RSS(\hat{\beta}_0, \hat{\beta}_1) = \sum_{i = 1}^n r_i ^ 2 = \sum_{i = 1}^n (y_i - \hat{y}_i) ^ 2 =\sum_{i = 1}^n (y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i)^2
+$$
+
+RSS: Residual Sum of Squares. When we solve this minimization problem we get the Ordinary Least Squares (OLS) estimators for $\beta_0$ and $\beta_1$.
+
+
+Calculation of the OLS estimates given data
+
+$$
+y_i = \beta_0 + \beta_1 x_i + u_i\quad \text{black line}
+$$
+
+
+```{r}
+## lm: Linear Model
+## y: Time
+## x: Invoices
+lm(Time ~ 1 + Invoices, data = invoices)
+```
+
+Using OLS we get the estimated ("guessed") 
+
+$$
+\hat{\beta}_0 = 0.64171; \hat{\beta}_1 = 0.01129\\
+\hat{y}_i = 0.64171 + 0.01129 x_i
+$$
+
+```{r}
+ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
+  geom_point() +
+  geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
+  scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
+  geom_abline(slope = 0.015, intercept = 0.1) +
+  ylim(c(0, 7)) + 
+  geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick") +
+  geom_abline(slope = 0.01129, intercept = 0.64171, color = "steelblue")
+```
+
+Calculating the residual sum of squares (RSS) for different lines: a line with
+manually chosen (arbitrary) coefficients, and the OLS estimates of the coefficients.
+
+```{r}
+invoices <- invoices %>%
+  mutate(
+   y_hat_manual = 0.1 + 0.015 * Invoices,
+   residuals_manual = Time - y_hat_manual,
+   y_hat_OLS = 0.64171 + 0.01129 * Invoices,
+   residuals_OLS = Time - y_hat_OLS
+  )
+```
+
+Manually chosen coefficients (0.1; 0.015)
+
+```{r}
+sum(invoices$residuals_manual ^ 2)
+```
+
+OLS coefficients
+
+```{r}
+sum(invoices$residuals_OLS ^ 2)
+```
+
+
+
+
