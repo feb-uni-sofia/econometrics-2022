@@ -1,5 +1,5 @@
 ---
-title: "Simple Linear Model"
+title: "Das einfache lineare Regressionsmodell"
 author: "Boyko Amarov"
 date: "3/28/2022"
 output: html_document
