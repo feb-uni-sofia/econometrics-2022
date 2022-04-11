@@ -173,7 +173,7 @@ $$
 $$
 
 $$
-\min_{\hat{\beta}_0, \hat{\beta}_1} = RSS(\hat{\beta}_0, \hat{\beta}_1) = \sum_{i = 1}^{n}r_i^2 = \sum_{i = 1}^{n}(y_i - \hat{y}_i)^2
+\min_{\hat{\beta}_0, \hat{\beta}_1} RSS(\hat{\beta}_0, \hat{\beta}_1) = \sum_{i = 1}^{n}r_i^2 = \sum_{i = 1}^{n}(y_i - \hat{y}_i)^2
 $$
 
 Residual Sum of Squares: Residuen QuadratSumme. Die Lösung für die Betas heißt die KleinstQuadrateSchätzung (KQ-Schätzung, OLS: ordinary least squares).
@@ -184,25 +184,14 @@ $$
 
 ```{r}
 ## lm: Linear Model
-lm(Time ~ 1 + Invoices, data = invoices)
+fit <- lm(Time ~ 1 + Invoices, data = invoices)
+fit
 ```
 
 $$
 \hat{\beta}_0 = 0.64171, \hat{\beta}_1 = 0.01129\\
 \hat{y}_i = 0.64171 + 0.01129 x_i
 $$
-
-```{r}
-ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
-  geom_point() +
-  geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
-  scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
-  geom_abline(slope = 0.015, intercept = 0.1) +
-  ylim(c(0, 7)) +
-  geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick") +
-  geom_abline(slope = 0.01129, intercept = 0.64171, color = "steelblue")
-```
-
 ```{r}
 invoices %>%
   mutate(
@@ -216,5 +205,118 @@ invoices %>%
     RSS_KQ = sum(residuen_KQ ^ 2)
   )
 ```
+
+```{r}
+ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
+  geom_point() +
+  geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
+  scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
+  geom_abline(slope = 0.015, intercept = 0.1) +
+  ylim(c(0, 7)) +
+  geom_abline(slope = 0.001, intercept = 0.1, color = "firebrick") +
+  geom_segment(aes(xend = Invoices, yend = y_hat_manuell, ystart = Time)) +
+  geom_abline(slope = 0.01129, intercept = 0.64171, color = "steelblue")
+  # +
+  # geom_segment(aes(xend = Invoices, ystart=Time, yend = y_hat_manuell))
+```
+
+## Prognose
+
+Die ursprüngliche Aufgabe war, die Bearbeitungszeit für 50, 120, 201, 250 und 400 Rechnungen zu schätzen.
+
+Die geschätzte Regressionsgleichung ist:
+
+$$
+\hat{y} = 0.64171 + 0.01129 x
+$$
+
+Die geschätzte Bearbeitungszeit für 50 Rechnungen ausrechnen:
+
+$$
+\hat{y}_{x = 50} = 0.64171 + 0.01129*50 = 1.20621 [Stunden]
+$$
+$$
+\hat{y}_{x = 120} = 0.64171 + 0.01129*120 = 1.99651 [Stunden]
+$$
+
+```{r}
+ggplot(data = invoices, aes(x = Invoices, y = Time)) + 
+  geom_point() +
+  geom_vline(xintercept = c(50, 120, 201, 250, 400), lty = 2, alpha = 0.5) +
+  scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
+  ylim(c(0, 7)) +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+?predict.lm
+```
+
+```{r}
+daten_fuer_schaetzung <- tibble(
+  Invoices = c(50, 120, 201, 250, 400)
+)
+```
+
+
+```{r}
+predict(fit, newdata = daten_fuer_schaetzung)
+```
+
+
+## Interpretation der Koeffizienten
+
+$$
+\hat{y} = 0.64 + 0.011 x
+$$
+Wenn $x = 0$, dann ist die geschätzte Bearbeitungszeit gleich:
+
+$$
+\hat{y}_{x = 0} = 0.64 + 0.011*0 = 0.64 [\text{Stunden}]
+$$
+Die geschätzten Fixkosten der Firma belaufen sich auf 0.64 Stunden.
+
+
+0.011 [Stunden/Rechnung]: Grenzkosten (marginal cost): die zusätzlichen Kosten (Stunden) für eine zusätzliche Rechnung. Falls wir die Anzahl von Rechnungen um eine Einheit erhöhen, erwarten wir eine Erhöhung der Bearbeitungszeit um 0.011 Stunden.
+
+## Unsicherheit der Prognose
+```{r}
+## Anzahl von Beobachtungen
+n <- 30
+
+## Erzeugt eine Sequenz von 30 Zahlen zwischen
+## 10 und 250
+x <- round(seq(10, 250, length.out = n), 0)
+x
+```
+
+$$
+y_i = \hat{\beta}_0 + \hat{\beta}_1 x_i
+$$
+
+
+```{r}
+
+## Erzeugt n = 30 Werte per Zufall aus der
+## Normalverteilung mit Erwartungswert 0 und
+## Standardabweichung 0.5
+
+u <- rnorm(n, mean = 0, sd = 0.5)
+
+## Erzeugt Werte für y
+y <- 0.1 + 0.015 * x + u
+
+## Visualisierung der Daten
+tibble(x = x, y = y) %>%
+  ggplot(aes(x = x, y = y)) +
+    geom_point() +
+    geom_abline(intercept = 0.1, slope = 0.015)
+
+
+## KQ-Schätzung von 
+lm(y ~ x)
+```
+
+
 
 
