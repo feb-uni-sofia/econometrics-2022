@@ -90,45 +90,6 @@ $$
 y_i = E(y_i) + u_i
 $$
 
-## Simulation
-
-Normal distribution
-
-```{r}
-# r: random, norm: normal
-# mean: expected value of the distribution, 
-# sd: standard deviation of the distribution = square root of the variance
-
-u <- rnorm(1000, mean = 0, sd = 1)
-# u
-```
-
-```{r}
-mean(u)
-```
-
-
-```{r}
-tibble(u) %>%
-  ggplot(aes(x = u)) +
-    geom_histogram(bins = 20)
-```
-
-
-```{r}
-n <- 30
-x <- round(seq(10, 250, length.out = n), 0)
-## Select values at random from a standard 
-## normal distribution, i.e. mean = 0, standard dev. = 0.5
-u <- rnorm(n, mean = 0, sd = 0.5)
-y <- 0.1 + 0.015 * x + u
-
-tibble(x = x, y = y) %>%
-  ggplot(aes(x = x, y = y)) + 
-    geom_point() +
-    geom_abline(intercept = 0.1, slope = 0.015) +
-    xlim(c(0, 250))
-```
 
 # Interpretation of the linear equation
 
@@ -203,7 +164,7 @@ $$
 invoices <- invoices %>%
   mutate(
     y_hat_manual = 0.1 + 0.015 * Invoices,
-    residual_manual = Time - y_hat_manual
+    residuals_manual = Time - y_hat_manual
   )
 ```
 
@@ -244,7 +205,7 @@ RSS: Residual Sum of Squares. When we solve this minimization problem we get the
 Calculation of the OLS estimates given data
 
 $$
-y_i = \beta_0 + \beta_1 x_i + u_i\quad \text{black line}
+y_i = \beta_0 + \beta_1 x_i + u_i
 $$
 
 
@@ -252,7 +213,8 @@ $$
 ## lm: Linear Model
 ## y: Time
 ## x: Invoices
-lm(Time ~ 1 + Invoices, data = invoices)
+fit <- lm(Time ~ 1 + Invoices, data = invoices)
+fit
 ```
 
 Using OLS we get the estimated ("guessed") 
@@ -276,6 +238,10 @@ ggplot(data = invoices, aes(x = Invoices, y = Time)) +
 Calculating the residual sum of squares (RSS) for different lines: a line with
 manually chosen (arbitrary) coefficients, and the OLS estimates of the coefficients.
 
+$$
+\hat{y}_i = 0.64171 + 0.01129 x_i
+$$
+
 ```{r}
 invoices <- invoices %>%
   mutate(
@@ -288,16 +254,261 @@ invoices <- invoices %>%
 
 Manually chosen coefficients (0.1; 0.015)
 
+RSS for the manually chosen coefficients (0.1; 0.015)
+
 ```{r}
 sum(invoices$residuals_manual ^ 2)
 ```
 
-OLS coefficients
+RSS for the OLS coefficients (intercept = 0.64171; slope = 0.01129)
 
 ```{r}
 sum(invoices$residuals_OLS ^ 2)
 ```
 
 
+Let us get back to the original task to predict the time needed to process 50, 120, 201, 250, 400 invoices.
+
+```{r}
+## Where to get the data?
+invoices %>%
+  ggplot(
+    ## How to map data to elements in the graphic
+    aes(
+      x = Invoices, 
+      y = Time
+      )
+    ) + 
+    ## How to visualise the data
+    geom_point() +
+    ## Add the regression line (least squares) to the graphic
+    geom_smooth(method = "lm") +
+    geom_vline(
+      ## Where should the vertical lines intercept with the x-axis
+      xintercept = c(50, 120, 201, 250, 400),
+      ## Alpha channel: controls transparency
+      alpha = 0.5,
+      ## lty: line type 
+      lty = 2
+    ) +
+    ## Controls the x-axis
+    scale_x_continuous(breaks = c(50, 120, 201, 250, 400)) +
+    geom_hline(
+      yintercept = c(
+        1.206292, 
+        1.996707, 
+        2.911330, 
+        3.464621, 
+        5.158368),
+      lty = 2,
+      alpha = 0.5
+    ) +
+    scale_y_continuous(breaks = c(
+        1.206292, 
+        1.996707, 
+        2.911330, 
+        3.464621, 
+        5.158368))
+```
+
+
+$$
+\hat{y} = 0.64 + 0.011 x
+$$
+$$
+\hat{y}_{x = 50} = 0.64 + 0.011 * 50 = 1.19 [hours]
+$$
+$$
+\hat{y}_{x = 120} = 0.64 + 0.011 * 120 = 1.96 [hours]
+$$
+
+
+```{r}
+data_for_predictions <- tibble(
+  Invoices = c(50, 120, 201, 250, 400)
+)
+```
+
+
+```{r}
+# ?predict.lm
+predict(fit, newdata = data_for_predictions)
+```
+
+# Interpretation of the model coefficients
+
+$$
+\hat{y} = 0.64 + 0.011 x
+$$
+
+$$
+\hat{y}_{x = 0} = 0.64 + 0.011 * 0 = 0.64 [hours]
+$$
+The intercept estimates the expected fixed costs (in terms of time) of the firm.
+
+The slope is 0.011 [hours/invoice]: marginal costs: this is the additional costs (in terms of time) for one additional unit of input (one invoice).
+
+
+```{r}
+## Where to get the data?
+invoices %>%
+  ggplot(
+    aes(
+      x = Invoices, 
+      y = Time
+      )
+    ) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+The predicted processing time for 50 invoices (given the linear model that we assumed and method for estimating its coefficients) is 1.2 hours.
+
+Prediction for 50 invoices:
+
+$$
+\hat{y}_{x = 50} = 0.64171 + 0.01129*50 = 1.20621 [hours]
+$$
+Prediction for 120 invoices:
+
+$$
+\hat{y}_{x = 120} = 0.64171 + 0.01129*120 = 1.99651 [hours]
+$$
+```{r}
+?predict.lm
+```
+
+Create a data object that holds the values for which we want
+to make a prediction.
+
+```{r}
+data_for_predictions <- tibble(
+  Invoices = c(50, 120, 201, 250, 400)
+)
+```
+
+To compute the predictions using R we can use the `predict` function.
+
+```{r}
+predict(fit, newdata = data_for_predictions)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+$$
+\hat{y}_{x = 50} = 0.6417 + 0.01129 * 50 = 1.206292
+$$
+
+
+Prediction for 120 invoices:
+
+$$
+\hat{y}_{x = 120} = 0.6417 + 0.01129 * 120 = 1.996707
+$$
+
+
+## Interpretation of the model coefficients
+
+$$
+\hat{y} = 0.64 + 0.011 x
+$$
+
+
+$$
+\hat{y}_{x=0} = 0.64 + 0.011*0 = 0.64 [hours]
+$$
+
+For $x = 0$ (zero invoices) the expected processing time ($\hat{y}$) equals 0.64 hours. These corresponds to the fixed costs of the firm (in terms of time). 0.011 (hours/invoice) is the estimated marginal cost for an additional invoice (in terms of time).
+
+To plot the OLS regression line quickly:
+
+```{r}
+invoices %>%
+  ggplot(aes(x = Invoices, y = Time)) + 
+    geom_point() + 
+    geom_smooth(method = "lm")
+```
+
+## Simulation
+
+Normal distribution
+
+```{r}
+# r: random, norm: normal
+# mean: expected value of the distribution, 
+# sd: standard deviation of the distribution = square root of the variance
+
+u <- rnorm(1000, mean = 0, sd = 1)
+# u
+```
+
+```{r}
+mean(u)
+```
+
+
+```{r}
+tibble(u) %>%
+  ggplot(aes(x = u)) +
+    geom_histogram(bins = 20)
+```
+
+Lets us assume, that we know a linear relationship between $y$ and $x$.
+
+$$
+y =  0.1 + 0.015 x + u, \quad u \sim N(0, \sigma^2 = 0.5^2)
+$$
+```{r}
+## Number of onservations
+n <- 30
+## Generate a grid of 30 values for x between 10 and 250
+x <- round(seq(10, 250, length.out = n), 0)
+x
+```
+
+
+```{r}
+## Select values at random from a standard 
+## normal distribution, i.e. mean (expected value) = 0, standard dev. = 0.5
+u <- rnorm(n, mean = 0, sd = 0.5)
+y <- 0.1 + 0.015 * x + u
+sim_data <- tibble(x = x, y = y)
+# sim_data %>%
+#   ggplot(aes(x = x, y = y)) +
+#     geom_point() +
+#     geom_abline(intercept = 0.1, slope = 0.015) +
+#     ## Controls the range of the y-axis
+#     ylim(c(0, 5)) +
+#     ## Controls the range of the x-axis
+#     xlim(c(0, 260))
+lm(y ~ 1 + x)
+```
 
 
