@@ -10,13 +10,15 @@ output:
 ## Warning: to compile the notes you need the "bookdown" and the "broom" packages. Install them by
 ## running install.packages, see the commented lines below
 
-## install.packages(c("patchwork", "bookdown", "broom"))
+# install.packages(c("patchwork", "bookdown", "broom"))
 
 library(tidyverse)
 library(broom)
 library(patchwork)
 
-kids <- read_csv("https://raw.githubusercontent.com/feb-uni-sofia/econometrics2020-solutions/master/data/childiq.csv") %>% select(kid_score, mom_hs)
+kids <- read_csv(
+  "https://raw.githubusercontent.com/feb-uni-sofia/econometrics2020-solutions/master/data/childiq.csv") %>% 
+  select(kid_score, mom_hs)
 ```
 
 # Linear regression model with a single categorical predictor
@@ -48,6 +50,27 @@ kids %>%
   )
 ```
 
+```{r}
+?ifelse
+```
+
+```{r}
+kids <- kids %>%
+  mutate(
+    mom_hs_string = ifelse(mom_hs == 1, "With HS", "Without HS")
+  )
+
+kids %>%
+  ggplot(aes(
+    x = mom_hs_string,
+    y = kid_score,
+    color = mom_hs_string
+    )
+  ) + 
+  geom_point(position = "jitter") +
+  geom_boxplot(alpha = 0.5)
+```
+
 Formulated as a linear regression model:
 
 $$
@@ -55,6 +78,7 @@ i = 1,\ldots n = 434\\
 y_i: \text{Kid IQ score} \\
 x_i \in \{0, 1\}
 $$
+
 $$
 y_i = \beta_0 + \beta_1 x_i + u_i
 $$
@@ -69,6 +93,16 @@ fit
 $$
 \hat{y}_i = 77.55 + 11.77 x_i
 $$
+
+
+
+
+
+
+
+
+
+
 The OLS estimate for the intercept corresponds to the average $y$ in the group with $x = 0$ (77.55) and the estimate for the slope equals to the difference of the averages in the $x = 1$ and $ x = 0$ group (89.31965 - 77.54839 = 11.77).
 
 So the estimated difference of the averages in the two groups (with HS and without HS) is 11.77.
@@ -80,15 +114,7 @@ summary(fit)
 ```
 
 
-```{r}
-kids %>%
-  ggplot(aes(
-    x = mom_hs, 
-    y = kid_score, 
-    color = factor(mom_hs))) + 
-  geom_point(position = "jitter") +
-  geom_boxplot(alpha = 0.5)
-```
+
 
 Assume that the kids were selected at random from the population of children in the USA (at the time of the survey).
 
@@ -103,9 +129,6 @@ in terms of a linear regression model.
 
 
 ## Simulation
-
-
-## Samples simulation
 
 Let us take the linear regression model and let us _assume_ that the random term $e_i$ follows a normal distribution with zero mean $\mu = 0$ and some standard deviation $\sigma$ (or equivalently variance $\sigma^2$).
 
@@ -123,28 +146,10 @@ $$
 \end{align}
 $$
 
-
-
-
-
 We would like to study the way the estimates for $\beta_0$ and $\beta_1$ vary from sample to sample. For that purpose we will generate $R = 2000$ samples from the population described by equation \@ref(eq:reg-pop). The we will estimate the regression model for each of these 2000 samples. What follows is a lot of rather technical details that
 we need to generate the values for the samples and arrange these values in a way that is convenient for plotting and analysis.
 
 We begin by introducing the `group_by` function and we'll use it to compute the sample group means for the two groups defined by `mom_hs`.
-
-```{r}
-## Do the same calculation of the group averages that
-## we accomplished by splitting the data in two using `filter`.
-kids %>% 
-  group_by(mom_hs) %>%
-  summarise(
-    "Group size" = n(),
-    "Average" = mean(kid_score)
-  )
-```
-
-<!-- Next we calculate the _sample_ standard deviation of the IQ test scores (`kid_score`) and for now we will use this value for the standard deviation of the random terms $e_i$. -->
-
 
 
 Next we construct a data set using `expand_grid` to replicate the `mom_hs` column $R = 2000$ times.
@@ -153,6 +158,7 @@ Next we construct a data set using `expand_grid` to replicate the `mom_hs` colum
 ## Number of simulated samples
 ## Construct a data set with mom_hs repeated R = 2000 times
 ## Examine the contents of sim_df to see what expand_grid returns
+
 sim_df <- expand_grid(
     R = 1:2000,
     mom_hs = kids$mom_hs
@@ -172,9 +178,10 @@ sim_df <- sim_df %>%
     ## Compute a simulated IQ score for each kid according to our estimated regression equation
     ## rnorm adds a value selected at random from a normal distribution with mean = 0 and standard
     ## deviation (sigma) = 19.85 (that we estimated from the sample)
-    # e = rnorm(2000 * 434, mean = 0, sd = 19.85),
-    u = rnorm(2000 * 434, mean = 0, sd = 19.85),
-    kid_score = 77.54839 + 11.77 * mom_hs + u
+    ## rnorm requires to know the number of values to be selected at random
+    ## n(): the number of observations in the dataset
+    u = rnorm(n(), mean = 0, sd = 19.85),
+    kid_score = 77.55 + 11.77 * mom_hs + u
   )
 ```
 
@@ -204,6 +211,8 @@ head(sample2)
 
 
 ```{r}
+## Code for illustration purposes only
+
 sim_coeff <- sim_df %>%
   group_by(R) %>%
   ## The tidy function reformats the output of lm so that it can fit in a data frame
@@ -221,17 +230,23 @@ slopes <- sim_coeff %>% filter(term == "mom_hs")
 ```{r}
 slopes %>%
   ggplot(aes(x = estimate)) + 
-  geom_boxplot(alpha = 0.5) +
-  geom_point(aes(y = 0), position = "jitter", alpha = 0.2, size = 1) +
+  geom_point(aes(y = 0), alpha = 0.5, position = "jitter", size = 1) +
   labs(
     x = "Slope estimate",
     title = "Distribution of slope estimates (over 2000 samples)"
   ) +
-  geom_vline(xintercept = 11.77, color = "red") +
-  xlim(c(0, 21))
+  geom_boxplot(alpha = 0.5) +
+  geom_density(color = "steelblue")
+ #  geom_vline(xintercept = 11.77, color = "red") +
+ #  xlim(c(0, 21))
 ```
 ```{r}
-summary(fit)
+summary(slopes$estimate)
+```
+
+
+```{r}
+fit
 ```
 
 
@@ -285,31 +300,38 @@ sim_coeff_wide %>%
 
 
 $$
-y_i = \alpha + \beta x_i + u_i, \quad E(u_i) = 0\\
-E(y_i) = \alpha + \beta x_i\\
+y_i = \beta_0 + \beta_1 x_i + u_i, \quad E(u_i) = 0\\
+E(y_i) = \beta_0 + \beta_1 x_i\\
 \begin{align}
 E(y_i) = 
 \begin{cases} 
-\mu_1 = \alpha + \beta & \text{if } x_i = 1 \\
-\mu_0 =\alpha & \text{if } x_i = 0
+\mu_1 = \beta_0 + \beta_1 & \text{if } x_i = 1 \\
+\mu_0 = \beta_0 & \text{if } x_i = 0
 \end{cases}   
 \end{align}
 $$
 
+$$
+\mu_1 = \beta_0 + \beta_1\\
+\mu_0 = \beta_0 \\ \implies
+\mu_1 - \mu_0 = \beta_1
+$$
 
 In the linear model $\alpha$ is the the expected IQ score of kids with mother without high school degree. The expected IQ score of kids with mother with HS degree is $\alpha + \beta$.
-
-
-
-$$
-\mu_1 = \alpha + \beta\\
-\mu_0 =\alpha\\
-\implies \beta = \mu_1 - \mu_0
-$$
 
 $\beta$ is the difference between expected IQ scores of kids in the first group (mother has HS degree) and expected IQ score of kids in the second group (kids with mother without HS degree).
 
 ## Coefficient estimation
+
+It can be shown that:
+
+$$
+\hat{\beta}_0 = \hat{\mu}_0 = \bar{y}_{x = 0}\\
+\hat{\beta}_1 = \hat{\mu}_1 -  \hat{\mu}_0 = \bar{y}_{x = 1} - \bar{y}_{x = 0}\\
+$$
+
+
+
 
 
 ## Definition of the normal distribution density
