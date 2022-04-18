@@ -9,12 +9,13 @@ output:
 ```{r setup, include=FALSE}
 ## Warning: to compile the notes you need the "bookdown" and the "broom" packages. Install them by
 ## running install.packages, see the commented lines below
+
+## install.packages(c("patchwork", "bookdown", "broom"))
+
 library(tidyverse)
 library(broom)
 library(patchwork)
-## install.packages("patchwork")
-## install.packages("bookdown")
-## install.packages("broom")
+
 kids <- read_csv("https://raw.githubusercontent.com/feb-uni-sofia/econometrics2020-solutions/master/data/childiq.csv") %>% select(kid_score, mom_hs)
 ```
 
