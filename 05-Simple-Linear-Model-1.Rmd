@@ -34,54 +34,64 @@ Two groups of kids: the ones whose mother had a high school degree (`mom_hs = 1`
 Question: are this two groups different with respect to IQ (as measured by `kid_score`).
 
 
+Research hypothesis: children of mothers without a high school degree have 
+lower IQ on average compared to children of mothers with a high school degree.
+
+
 ```{r}
-# == (logical comparison)
-kids_mom_nohs <- kids %>% filter(mom_hs == 0)
-kids_mom_hs <- kids %>% filter(mom_hs == 1)
+kids %>%
+  ## Group the data according to the educational status of the mothers
+  group_by(mom_hs) %>%
+  ## Compute the average IQ score in each group
+  summarise(
+    average_IQ = mean(kid_score)
+  )
 ```
 
+Formulated as a linear regression model:
+
+$$
+i = 1,\ldots n = 434\\
+y_i: \text{Kid IQ score} \\
+x_i \in \{0, 1\}
+$$
+$$
+y_i = \beta_0 + \beta_1 x_i + u_i
+$$
+
+
 ```{r}
-print("Summary of the no HS degree group")
-summary(kids_mom_nohs$kid_score)
-print("Summary of the with HS degree group")
-summary(kids_mom_hs$kid_score)
+fit <- lm(kid_score ~ 1 + mom_hs, data = kids)
+fit
 ```
 
+
+$$
+\hat{y}_i = 77.55 + 11.77 x_i
+$$
+The OLS estimate for the intercept corresponds to the average $y$ in the group with $x = 0$ (77.55) and the estimate for the slope equals to the difference of the averages in the $x = 1$ and $ x = 0$ group (89.31965 - 77.54839 = 11.77).
+
+So the estimated difference of the averages in the two groups (with HS and without HS) is 11.77.
+
+
+
 ```{r}
-ggplot(data = kids, aes(x = mom_hs, y = kid_score, color = factor(mom_hs))) + 
-  geom_point(position = "jitter")
+summary(fit)
 ```
 
 
 ```{r}
-ggplot(data = kids, aes(x = kid_score, y = factor(mom_hs))) + 
-  geom_boxplot()
-```
-We can also visualise the distribution using histograms:
-
-```{r}
-ggplot(data = kids, aes(x = kid_score, color = factor(mom_hs))) + 
-  geom_histogram()
-```
-
-or density estimates
-
-```{r}
-ggplot(data = kids, aes(x = kid_score, color = factor(mom_hs))) + 
-  geom_density()
+kids %>%
+  ggplot(aes(
+    x = mom_hs, 
+    y = kid_score, 
+    color = factor(mom_hs))) + 
+  geom_point(position = "jitter") +
+  geom_boxplot(alpha = 0.5)
 ```
 
 Assume that the kids were selected at random from the population of children in the USA (at the time of the survey).
 
-
-## Summarise the data
-
-```{r}
-summary(kids$kid_score)
-```
-```{r}
-table(kids$mom_hs)
-```
 
 Assume that the kids were selected at random from the population of all kids in the USA.
 
@@ -91,14 +101,191 @@ There are a lot of samples that we could have observed, but we have selected onl
 Assumption about all the possible samples. Before that we formalise our comparison between the two groups
 in terms of a linear regression model.
 
-$$
-i = 1,\ldots,n = 434 \text{ kids}\\
-y_i: \text{ IQ score of kid } i\\
-x_i: \text{ mother has high school degree (1) or not (0) for kid } i\\
-$$
+
+## Simulation
+
+
+## Samples simulation
+
+Let us take the linear regression model and let us _assume_ that the random term $e_i$ follows a normal distribution with zero mean $\mu = 0$ and some standard deviation $\sigma$ (or equivalently variance $\sigma^2$).
 
 $$
-y_i = \alpha + \beta x_i + e_i, \quad E(e_i) = 0\\
+y_i = \beta_0 + \beta_1 x_i + u_i\\
+\text{Assume } u_i \sim N(0, \sigma^2)
+$$
+
+Assume that we know the function that describes the population of children is:
+
+<!-- (\#eq:reg-pop) -->
+$$
+\begin{align}
+  y_i = 77.55 + 11.77 x_i + u_i
+\end{align}
+$$
+
+
+
+
+
+We would like to study the way the estimates for $\beta_0$ and $\beta_1$ vary from sample to sample. For that purpose we will generate $R = 2000$ samples from the population described by equation \@ref(eq:reg-pop). The we will estimate the regression model for each of these 2000 samples. What follows is a lot of rather technical details that
+we need to generate the values for the samples and arrange these values in a way that is convenient for plotting and analysis.
+
+We begin by introducing the `group_by` function and we'll use it to compute the sample group means for the two groups defined by `mom_hs`.
+
+```{r}
+## Do the same calculation of the group averages that
+## we accomplished by splitting the data in two using `filter`.
+kids %>% 
+  group_by(mom_hs) %>%
+  summarise(
+    "Group size" = n(),
+    "Average" = mean(kid_score)
+  )
+```
+
+<!-- Next we calculate the _sample_ standard deviation of the IQ test scores (`kid_score`) and for now we will use this value for the standard deviation of the random terms $e_i$. -->
+
+
+
+Next we construct a data set using `expand_grid` to replicate the `mom_hs` column $R = 2000$ times.
+
+```{r}
+## Number of simulated samples
+## Construct a data set with mom_hs repeated R = 2000 times
+## Examine the contents of sim_df to see what expand_grid returns
+sim_df <- expand_grid(
+    R = 1:2000,
+    mom_hs = kids$mom_hs
+  )
+```
+
+
+After that we calculate the (simulated) IQ score for every child in every sample (a total of $2000 \times 434$ values) by using equation \@ref{eq:pop-reg}. For the value of the random term we select a value from the normal distribution with mean 0 and standard deviation $\sigma = 20.41069$ (we will turn to the estimation of $\sigma$ later).
+
+```{r}
+## Fixes the random numbers sequence so that you can reproduce the 
+## random draws
+# set.seed(4234)
+
+sim_df <- sim_df %>%
+  mutate(
+    ## Compute a simulated IQ score for each kid according to our estimated regression equation
+    ## rnorm adds a value selected at random from a normal distribution with mean = 0 and standard
+    ## deviation (sigma) = 19.85 (that we estimated from the sample)
+    # e = rnorm(2000 * 434, mean = 0, sd = 19.85),
+    u = rnorm(2000 * 434, mean = 0, sd = 19.85),
+    kid_score = 77.54839 + 11.77 * mom_hs + u
+  )
+```
+
+The last step completes the simulation of our 2000 samples and we can start estimating the regression model in each sample. For that we group the simulation data set `sim_df` by the simulation number (variable $R$) and run the regression model in every group. The `tidy` function serves to transform the output of `lm` into a format that can easily fit into a rectangular table.
+
+
+```{r}
+## Estimate the OLS coefficients with the data from the first sample of children
+sample1 <- sim_df %>% filter(R == 1)
+lm(kid_score ~ 1 + mom_hs, data = sample1)
+```
+
+```{r}
+sample2 <- sim_df %>% filter(R == 2)
+lm(kid_score ~ mom_hs, data = sample2)
+```
+
+```{r}
+head(sample1)
+```
+
+```{r}
+head(sample2)
+```
+
+
+
+
+```{r}
+sim_coeff <- sim_df %>%
+  group_by(R) %>%
+  ## The tidy function reformats the output of lm so that it can fit in a data frame
+  do(tidy(lm(kid_score ~ mom_hs, data = .))) %>%
+  select(R, term, estimate)
+```
+
+The data set `sim_coeff` now contains estimated coefficients ($\hat{\alpha}$ and $\hat{\beta}$) for every sample. To plot the distribution of $\hat{\beta}}$ we filter the data set so that we keep only the raw where `term == "mom_hs"` (i.e our estimates for $\beta$).
+
+```{r}
+slopes <- sim_coeff %>% filter(term == "mom_hs")
+```
+
+
+```{r}
+slopes %>%
+  ggplot(aes(x = estimate)) + 
+  geom_boxplot(alpha = 0.5) +
+  geom_point(aes(y = 0), position = "jitter", alpha = 0.2, size = 1) +
+  labs(
+    x = "Slope estimate",
+    title = "Distribution of slope estimates (over 2000 samples)"
+  ) +
+  geom_vline(xintercept = 11.77, color = "red") +
+  xlim(c(0, 21))
+```
+```{r}
+summary(fit)
+```
+
+
+```{r}
+summary(slopes$estimate)
+```
+
+```{r}
+sd(slopes$estimate)
+```
+
+Here we use the `summarise_all` function to compute the mean for every variable in the simulation dataset, grouping it by term (remember, we have two terms in the output: the coefficients $\hat{\alpha}$ and $\hat{\beta}$).
+
+```{r}
+## Compute the mean of each column by coefficient
+sim_coeff %>%
+  group_by(term) %>%
+  summarise_all(mean)
+```
+
+Next we would like to visualise the estimated regression lines for each sample. It is easier if we transform the dataset with the estimated coefficients for each sample are in separate columns. For now we are only interested in the `estimate` variable, so for the sake of simplicity we omit rest of the variables (this is the purpose of the `select` function). The we transform the data set from a long format.
+
+```{r}
+sim_coeff_wide <- sim_coeff %>%
+  mutate(
+    ## Rename the terms to get easier variable names
+    term = ifelse(term == "(Intercept)", "alpha", "beta")
+  ) %>%
+  ## Keep only the R, term and estimate variables
+  select(R, term, estimate) %>%
+  ## Pivot the data set so that we have the estimated coefficients as columns
+  pivot_wider(names_from = "term", values_from = "estimate")
+```
+
+Finally, we can plot the regression lines for each sample.
+
+```{r}
+sim_coeff_wide %>%
+  filter(R < 100) %>%
+  ggplot() + 
+    geom_abline(aes(intercept = alpha, slope = beta, group = R), alpha = 0.1, size = 1 / 5) + 
+    ## Set the limits of x-axis
+    xlim(c(0, 1)) +
+    ## Set the limits of y-axis
+    ylim(c(65, 95)) +
+    labs(
+      x = "Educational status of the mother 1: with HS, 0: without HS",
+      y = "IQ test score"
+    )
+```
+
+
+$$
+y_i = \alpha + \beta x_i + u_i, \quad E(u_i) = 0\\
 E(y_i) = \alpha + \beta x_i\\
 \begin{align}
 E(y_i) = 
@@ -123,24 +310,6 @@ $$
 $\beta$ is the difference between expected IQ scores of kids in the first group (mother has HS degree) and expected IQ score of kids in the second group (kids with mother without HS degree).
 
 ## Coefficient estimation
-
-
-```{r}
-lm(kid_score ~ 1 + mom_hs, data = kids)
-```
-
-Estimated regression equation
-$$
-\hat{\alpha} = 77.55 \\
-\hat{\beta} = 11.77 \\
-\hat{y}_i = \hat{\alpha} + \hat{\beta}x_i\\
-$$
-
-$$
-\hat{y}_i = \underbrace{77.55}_{\text{sample average of the x = 0 group}} + \underbrace{11.77}_{89.32 - 77.55: \text{difference between the group sample averages}}x_i\\
-$$
-
-# Normal distribution
 
 
 ## Definition of the normal distribution density
@@ -346,177 +515,6 @@ $$
 1 - pnorm(2, mean = 0, sd = 1)
 ```
 
-## Samples simulation
-
-Let us take the linear regression model and let us _assume_ that the random term $e_i$ follows a normal distribution with zero mean $\mu = 0$ and some standard deviation $\sigma$ (or equivalently variance $\sigma^2$).
-
-$$
-y_i = \alpha + \beta x_i + e_i\\
-\text{Assume } e_i \sim N(0, \sigma^2)
-$$
-
-Assume that we know the function that describes the population of children is:
-
-$$
-\begin{align}
-  (\#eq:reg-pop)
-  y_i = 77.55 + 11.77 x_i + e_i
-\end{align}
-$$
-
-
-We would like to study the way the estimates for $\alpha$ and $\beta$ vary from sample to sample. For that purpose we will generate $R = 2000$ samples from the population described by equation \@ref(eq:reg-pop). The we will estimate the regression model for each of these 2000 samples. What follows is a lot of rather technical details that
-we need to generate the values for the samples and arrange these values in a way that is convenient for plotting and analysis.
-
-We begin by introducing the `group_by` function and we'll use it to compute the sample group means for the two groups defined by `mom_hs`.
-
-```{r}
-## Do the same calculation of the group averages that
-## we accomplished by splitting the data in two using `filter`.
-kids %>% 
-  group_by(mom_hs) %>%
-  summarise(
-    "Group size" = n(),
-    "Average" = mean(kid_score)
-  )
-```
-
-<!-- Next we calculate the _sample_ standard deviation of the IQ test scores (`kid_score`) and for now we will use this value for the standard deviation of the random terms $e_i$. -->
-
-
-
-Next we construct a data set using `expand_grid` to replicate the `mom_hs` column $R = 2000$ times.
-
-```{r}
-## Number of simulated samples
-## Construct a data set with mom_hs repeated R = 2000 times
-## Examine the contents of sim_df to see what expand_grid returns
-sim_df <- expand_grid(
-    R = 1:2000,
-    mom_hs = kids$mom_hs
-  )
-```
-
-
-After that we calculate the (simulated) IQ score for every child in every sample (a total of $2000 \times 434$ values) by using equation \@ref{eq:pop-reg}. For the value of the random term we select a value from the normal distribution with mean 0 and standard deviation $\sigma = 20.41069$ (we will turn to the estimation of $\sigma$ later).
-
-```{r}
-## Fixes the random numbers sequence so that you can reproduce the 
-## random draws
-set.seed(4234)
-sim_df <- sim_df %>%
-  mutate(
-    ## Compute a simulated IQ score for each kid according to our estimated regression equation
-    ## rnorm adds a value selected at random from a normal distribution with mean = 0 and standard
-    ## deviation (sigma) = 19.85 (that we estimated from the sample)
-    # e = rnorm(2000 * 434, mean = 0, sd = 19.85),
-    e = rnorm(2000 * 434, mean = 0, sd = 19.85),
-    kid_score = 77.54839 + 11.77 * mom_hs + e
-  )
-```
-
-The last step completes the simulation of our 2000 samples and we can start estimating the regression model in each sample. For that we group the simulation data set `sim_df` by the simulation number (variable $R$) and run the regression model in every group. The `tidy` function serves to transform the output of `lm` into a format that can easily fit into a rectangular table.
-
-
-```{r}
-sample1 <- sim_df %>% filter(R == 1)
-lm(kid_score ~ mom_hs, data = sample1)
-```
-
-```{r}
-sample2 <- sim_df %>% filter(R == 2)
-lm(kid_score ~ mom_hs, data = sample2)
-tidy(lm(kid_score ~ mom_hs, data = sample2))
-```
-```{r}
-head(sample1)
-```
-
-```{r}
-head(sample2)
-```
-
-
-
-
-```{r}
-sim_coeff <- sim_df %>%
-  group_by(R) %>%
-  ## The tidy function reformats the output of lm so that it can fit in a data frame
-  do(tidy(lm(kid_score ~ mom_hs, data = .))) %>%
-  select(R, term, estimate)
-```
-
-The data set `sim_coeff` now contains estimated coefficients ($\hat{\alpha}$ and $\hat{\beta}$) for every sample. To plot the distribution of $\hat{\beta}}$ we filter the data set so that we keep only the raw where `term == "mom_hs"` (i.e our estimates for $\beta$).
-
-```{r}
-slopes <- sim_coeff %>%
-  filter(term == "mom_hs")
-# slopes %>%
-#   ggplot(aes(x = estimate)) + 
-#   geom_density()
-```
-
-
-```{r}
-slopes %>%
-  ggplot(aes(x = estimate)) + 
-  geom_boxplot() +
-  geom_point(aes(y = 0), position = "jitter", alpha = 0.2, size = 1) +
-  labs(
-    x = "Slope estimate",
-    title = "Distribution of slope estimates (over 2000 samples)"
-  ) +
-  geom_vline(xintercept = 11.77, color = "red") +
-  xlim(c(0, 21))
-```
-```{r}
-summary(slopes$estimate)
-```
-
-```{r}
-sd(slopes$estimate)
-```
-
-Here we use the `summarise_all` function to compute the mean for every variable in the simulation dataset, grouping it by term (remember, we have two terms in the output: the coefficients $\hat{\alpha}$ and $\hat{\beta}$).
-
-```{r}
-## Compute the mean of each column by coefficient
-sim_coeff %>%
-  group_by(term) %>%
-  summarise_all(mean)
-```
-
-Next we would like to visualise the estimated regression lines for each sample. It is easier if we transform the dataset with the estimated coefficients for each sample are in separate columns. For now we are only interested in the `estimate` variable, so for the sake of simplicity we omit rest of the variables (this is the purpose of the `select` function). The we transform the data set from a long format.
-
-```{r}
-sim_coeff_wide <- sim_coeff %>%
-  mutate(
-    ## Rename the terms to get easier variable names
-    term = ifelse(term == "(Intercept)", "alpha", "beta")
-  ) %>%
-  ## Keep only the R, term and estimate variables
-  select(R, term, estimate) %>%
-  ## Pivot the data set so that we have the estimated coefficients as columns
-  pivot_wider(names_from = "term", values_from = "estimate")
-```
-
-Finally, we can plot the regression lines for each sample.
-
-```{r}
-sim_coeff_wide %>%
-  filter(R < 100) %>%
-  ggplot() + 
-    geom_abline(aes(intercept = alpha, slope = beta, group = R), alpha = 0.1, size = 1 / 5) + 
-    ## Set the limits of x-axis
-    xlim(c(0, 1)) +
-    ## Set the limits of y-axis
-    ylim(c(65, 95)) +
-    labs(
-      x = "Educational status of the mother 1: with HS, 0: without HS",
-      y = "IQ test score"
-    )
-```
 
 ```{r}
 fit <- lm(kid_score ~ mom_hs, data = kids)
