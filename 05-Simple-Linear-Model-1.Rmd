@@ -18,7 +18,10 @@ library(patchwork)
 
 kids <- read_csv(
   "https://raw.githubusercontent.com/feb-uni-sofia/econometrics2020-solutions/master/data/childiq.csv") %>% 
-  select(kid_score, mom_hs)
+  select(kid_score, mom_hs) %>%
+   mutate(
+    mom_hs_string = ifelse(mom_hs == 1, "With HS", "Without HS")
+  )
 ```
 
 # Linear regression model with a single categorical predictor
@@ -50,23 +53,16 @@ kids %>%
   )
 ```
 
-```{r}
-?ifelse
-```
+
 
 ```{r}
-kids <- kids %>%
-  mutate(
-    mom_hs_string = ifelse(mom_hs == 1, "With HS", "Without HS")
-  )
-
 kids %>%
   ggplot(aes(
     x = mom_hs_string,
     y = kid_score,
     color = mom_hs_string
     )
-  ) + 
+  ) +
   geom_point(position = "jitter") +
   geom_boxplot(alpha = 0.5)
 ```
@@ -74,13 +70,13 @@ kids %>%
 Formulated as a linear regression model:
 
 $$
-i = 1,\ldots n = 434\\
+i = 1,\ldots, n = 434\\
 y_i: \text{Kid IQ score} \\
 x_i \in \{0, 1\}
 $$
 
 $$
-y_i = \beta_0 + \beta_1 x_i + u_i
+y_i = \beta_0 + \beta_1 x_i + u_i, u_i \sim N(0, \sigma^2)
 $$
 
 
@@ -93,13 +89,18 @@ fit
 $$
 \hat{y}_i = 77.55 + 11.77 x_i
 $$
+```{r}
+mean(kids$kid_score)
+```
 
 
-
-
-
-
-
+```{r}
+kids %>%
+  group_by(mom_hs) %>%
+  summarise(
+    Average_IQ = mean(kid_score)
+  )
+```
 
 
 
@@ -108,13 +109,29 @@ The OLS estimate for the intercept corresponds to the average $y$ in the group w
 So the estimated difference of the averages in the two groups (with HS and without HS) is 11.77.
 
 
+$$
+E(y_i) = \beta_0 + \beta_1 x_i\\
+\begin{align}
+E(y_i) = 
+\begin{cases} 
+\mu_1 = \beta_0 + \beta_1 & \text{if } x_i = 1 \text{} \\
+\mu_0 = \beta_0 & \text{if } x_i = 0 \text{ }
+\end{cases}   
+\end{align}\\
+\implies\\
+\beta_1 = \mu_1 - \mu_0
+$$
+$$
+\hat{\beta}_0 = \hat{\mu}_0 = \bar{y}_{x = 0}\\
+\hat{\beta}_1 = \hat{\mu}_1 - \hat{\mu}_0 = \bar{y}_{x = 1} - \bar{y}_{x = 0}
+$$
 
-```{r}
-summary(fit)
-```
+In our example
 
-
-
+$$
+\hat{\beta}_0 = 77.54839\\
+\hat{\beta}_1 = 89.31965 - 77.54839 = 11.77126
+$$
 
 Assume that the kids were selected at random from the population of children in the USA (at the time of the survey).
 
@@ -142,7 +159,7 @@ Assume that we know the function that describes the population of children is:
 <!-- (\#eq:reg-pop) -->
 $$
 \begin{align}
-  y_i = 77.55 + 11.77 x_i + u_i
+  y_i = 77.55 + 11.77 x_i + u_i, u_i \sim N(0, 19.85^2)
 \end{align}
 $$
 
@@ -155,12 +172,16 @@ We begin by introducing the `group_by` function and we'll use it to compute the 
 Next we construct a data set using `expand_grid` to replicate the `mom_hs` column $R = 2000$ times.
 
 ```{r}
+kids$mom_hs
+```
+
+```{r}
 ## Number of simulated samples
 ## Construct a data set with mom_hs repeated R = 2000 times
 ## Examine the contents of sim_df to see what expand_grid returns
 
 sim_df <- expand_grid(
-    R = 1:2000,
+    R = 1:2000, ## sequence of all integers between 1 and 3
     mom_hs = kids$mom_hs
   )
 ```
@@ -191,20 +212,20 @@ The last step completes the simulation of our 2000 samples and we can start esti
 ```{r}
 ## Estimate the OLS coefficients with the data from the first sample of children
 sample1 <- sim_df %>% filter(R == 1)
+head(sample1)
+```
+
+```{r}
 lm(kid_score ~ 1 + mom_hs, data = sample1)
 ```
 
 ```{r}
 sample2 <- sim_df %>% filter(R == 2)
-lm(kid_score ~ mom_hs, data = sample2)
-```
-
-```{r}
-head(sample1)
-```
-
-```{r}
 head(sample2)
+```
+
+```{r}
+lm(kid_score ~ mom_hs, data = sample2)
 ```
 
 
@@ -230,675 +251,23 @@ slopes <- sim_coeff %>% filter(term == "mom_hs")
 ```{r}
 slopes %>%
   ggplot(aes(x = estimate)) + 
-  geom_point(aes(y = 0), alpha = 0.5, position = "jitter", size = 1) +
+  geom_point(
+    aes(y = 0),
+    position = "jitter", 
+    size = 1/2,
+    alpha = 0.5
+    ) +
+    geom_boxplot(alpha = 0.5) +
   labs(
     x = "Slope estimate",
-    title = "Distribution of slope estimates (over 2000 samples)"
+    title = "Distribution of slope estimates (over 2000 samples)",
+    y = ""
   ) +
-  geom_boxplot(alpha = 0.5) +
   geom_density(color = "steelblue")
  #  geom_vline(xintercept = 11.77, color = "red") +
  #  xlim(c(0, 21))
 ```
 ```{r}
-summary(slopes$estimate)
-```
-
-
-```{r}
-fit
-```
-
-
-```{r}
-summary(slopes$estimate)
-```
-
-```{r}
-sd(slopes$estimate)
-```
-
-Here we use the `summarise_all` function to compute the mean for every variable in the simulation dataset, grouping it by term (remember, we have two terms in the output: the coefficients $\hat{\alpha}$ and $\hat{\beta}$).
-
-```{r}
-## Compute the mean of each column by coefficient
-sim_coeff %>%
-  group_by(term) %>%
-  summarise_all(mean)
-```
-
-Next we would like to visualise the estimated regression lines for each sample. It is easier if we transform the dataset with the estimated coefficients for each sample are in separate columns. For now we are only interested in the `estimate` variable, so for the sake of simplicity we omit rest of the variables (this is the purpose of the `select` function). The we transform the data set from a long format.
-
-```{r}
-sim_coeff_wide <- sim_coeff %>%
-  mutate(
-    ## Rename the terms to get easier variable names
-    term = ifelse(term == "(Intercept)", "alpha", "beta")
-  ) %>%
-  ## Keep only the R, term and estimate variables
-  select(R, term, estimate) %>%
-  ## Pivot the data set so that we have the estimated coefficients as columns
-  pivot_wider(names_from = "term", values_from = "estimate")
-```
-
-Finally, we can plot the regression lines for each sample.
-
-```{r}
-sim_coeff_wide %>%
-  filter(R < 100) %>%
-  ggplot() + 
-    geom_abline(aes(intercept = alpha, slope = beta, group = R), alpha = 0.1, size = 1 / 5) + 
-    ## Set the limits of x-axis
-    xlim(c(0, 1)) +
-    ## Set the limits of y-axis
-    ylim(c(65, 95)) +
-    labs(
-      x = "Educational status of the mother 1: with HS, 0: without HS",
-      y = "IQ test score"
-    )
-```
-
-
-$$
-y_i = \beta_0 + \beta_1 x_i + u_i, \quad E(u_i) = 0\\
-E(y_i) = \beta_0 + \beta_1 x_i\\
-\begin{align}
-E(y_i) = 
-\begin{cases} 
-\mu_1 = \beta_0 + \beta_1 & \text{if } x_i = 1 \\
-\mu_0 = \beta_0 & \text{if } x_i = 0
-\end{cases}   
-\end{align}
-$$
-
-$$
-\mu_1 = \beta_0 + \beta_1\\
-\mu_0 = \beta_0 \\ \implies
-\mu_1 - \mu_0 = \beta_1
-$$
-
-In the linear model $\alpha$ is the the expected IQ score of kids with mother without high school degree. The expected IQ score of kids with mother with HS degree is $\alpha + \beta$.
-
-$\beta$ is the difference between expected IQ scores of kids in the first group (mother has HS degree) and expected IQ score of kids in the second group (kids with mother without HS degree).
-
-## Coefficient estimation
-
-It can be shown that:
-
-$$
-\hat{\beta}_0 = \hat{\mu}_0 = \bar{y}_{x = 0}\\
-\hat{\beta}_1 = \hat{\mu}_1 -  \hat{\mu}_0 = \bar{y}_{x = 1} - \bar{y}_{x = 0}\\
-$$
-
-
-
-
-
-## Definition of the normal distribution density
-
-The density function of the normal distribution is given by:
-$$
-f(x) = \frac{1}{\sqrt{\pi \sigma^2}}e^{-\frac{1}{2}\left(\frac{x - \mu}{\sigma}\right)^2}, \quad x \in R
-$$
-
-We write $N(\mu, \sigma^2)$ to refer to this distribution. The normal distribution has two parameters: $\mu$ and $\sigma$. It can be shown that $\mu$ is the expected value of the distribution and that $\sigma^2$ is the variance of the distribution.
-
-
-## Calculate the density (dnorm)
-
-```{r}
-## d(density)norm(normal distribution)
-## Value of the normal density function with mu = 0, sigma = 1: N(0, 1)
-?dnorm
-dnorm(x = 0, mean = 0, sd = 1)
-## Value of the normal density function with mu = 5, sigma = 2: N(5, 4)
-dnorm(x = 0, mean = 5, sd = 2)
-```
-
-
-## Meaning of the parameters
-
-The expected value ($\mu$) is the location parameter of the distribution. It determines the location of the centre of the distribution. The variance of the distribution determines the shape of the curve. Small values of $\sigma$ result in curves that are concentrated around the expected value ($\mu$). Large values fo $\sigma$ result in curves that are less concentrated around the expected value.
-
-
-To plot of the density function we first create a data set `norm_df` that holds a sequence of x-values between -5 and 5. We use `expand_grid` so that we obtain every combination between `x`, `mu` and `sigma`. The reason is that it is easier to plot the curves with ggplot when we can map variables in the data set to aesthetics like colour and line type.
-
-```{r}
-norm_df <- expand_grid(
-  # x = c(1, 2),
-  x = seq(-5, 5, length.out = 300),
-  mu = c(0),
-  sigma = c(1/2, 1, 2)
-) %>%
-  mutate(
-    y = dnorm(x, mean = mu, sd = sigma)
-  )
-```
-
-Here we use the dataset to `norm_df` to plot the curves of the distribution.
-```{r}
-norm_df %>%
-  ggplot(
-    aes(
-      x = x, 
-      y = y, 
-      ## Maps the value of mu to the color of the curve (colour)
-      colour = factor(mu),
-      ## Map the value of sigma to the line type (lty)of the curve
-      lty = factor(sigma)
-    )
-  ) +
-  geom_line() + 
-  ## Draws two (dashed) vertical lines at x = 0 and at x = 2
-  geom_vline(xintercept = c(0, 2), lty = 2) +
-  ## Sets the breaks on the x-axis
-  scale_x_continuous(breaks = c(-5, 0, 2, 5))
-  
-## lty: line type
-```
-
-## Computing probabilities
-
-<!-- The area under the density over an interval equals the probability of an event occurring in the interval. -->
-
-<!-- We take the standard normal distribution N(0, 1) and want to compute the probability of x occurring between -1 and 1. -->
-
-
-```{r}
-d <- data.frame(
-  x = seq(-5, 5, length.out = 200)
-) %>%
-  mutate(
-    ## Dnorm computes the density
-    y = dnorm(x, mean = 0, sd = 1)
-  )
-## Code for illustration only
-std_norm_plot <- d %>%
-  ggplot(aes(x = x)) +
-  # note this next line is the only difference in code from the last plot
-  geom_ribbon(data = d %>% filter(x > -1, x < 1),
-              aes(ymin = 0, ymax = y), fill = "gray") +
-  geom_line(aes(y = y)) +
-  annotate(
-    geom = "text",
-    x = 0,
-    y = 0.2,
-    label = substitute(
-      "Area" %~~% p,
-      list(
-        p = round(pnorm(1) - pnorm(-1), 2)
-      )
-    )
-  ) +
-  labs(
-    x = "x",
-    y = "Normal density"
-  ) +
-  geom_vline(xintercept = -1, lty = 2) + 
-  geom_vline(xintercept = 1, lty = 2) +
-  scale_x_continuous(breaks = c(-5, -1, 0, 1, 5))
-plot(std_norm_plot)
-```
-
-```{r}
-## p(probability)norm(normal distribution)
-pnorm(-1, mean = 0, sd = 1)
-```
-
-$$
-Area(x < -1|\mu = 0, \sigma = 1) = 0.1586553
-$$
-```{r}
-## p(probability)norm(normal distribution)
-pnorm(1, mean = 0, sd = 1)
-```
-
-$$
-Area(x < 1|\mu = 0, \sigma = 1) = 0.8413447
-$$
-
-$$
-\begin{align}
-(\#eq:prob-center)
-Area(-1 < x < 1|\mu = 0, \sigma = 1) = Area(x < 1|\mu = 0, \sigma = 1) - Area(x < -1|\mu = 0, \sigma = 1) = 0.841 - 0.158 = 0.682
-\end{align}
-$$
-Play a standard normal "game" 100 times.
-
-```{r}
-## r(random)norm(normal distribution)
-norm_sim <- data.frame(
-  ## Draw 100 values from the standard normal distribution at random
-  x = rnorm(100, mean = 0, sd = 1)
-) %>%
-  mutate(
-    ## &: logical AND
-    x_in_interval = x > -1 & x < 1
-  )
-## Code for illustration only
-std_norm_plot + 
-  geom_point(
-    data = norm_sim, 
-    aes(x = x, y = runif(100, -0.01, 0.01), colour = x_in_interval),
-    size = 1.5,
-    alpha = 1/2
-  )
-# +
-#   geom_density(data = norm_sim, color = "steelblue2")
-```
-
-Count how many games end up with a result between -1 and 1 and compare this count to the probability of the interval computed in equation \@ref(eq:prob-center). Run the code a couple of times and observe how the number of games with result in [-1, 1] changes.
-
-```{r}
-table(norm_sim$x_in_interval)
-sum(norm_sim$x_in_interval) ## or equivalently
-```
-
-Commonly we need to compute probabilities for events like (x > 2). To compute it using `pnorm` we will make use of the fact that the entire area under the density curve equals 1.
-
-```{r}
-## For illustration only
-d %>% 
-  ggplot(aes(x = x)) +
-  # note this next line is the only difference in code from the last plot
-  geom_ribbon(data = d %>% filter(x > 1.96),
-              aes(ymin = 0, ymax = y), fill = "gray") +
-  geom_line(aes(y = y)) +
-  annotate(
-    geom = "text", 
-    x = 3,
-    y = 0.05, 
-    label = substitute(
-      "p" %~~% p,
-      list(
-        p = round(1 - pnorm(2), 3)
-        )
-      )
-    ) +
-  labs(
-    x = "x",
-    y = "Normal density"
-  ) + 
-  scale_x_continuous(breaks = c(-5, -2, 0, 2, 5))
-```
-
-First, compute the area under the curve for the interval $(-\infty, 2)$
-```{r}
-pnorm(2, mean = 0, sd = 1)
-```
-
-The subtract it from 1 to obtain the area under the curve for the interval $(2, \infty)$.
-
-$$
-P(x > 2|\mu = 0, \sigma = 1) = 1 - P(x < 2|\mu = 0, \sigma = 1) = 1 - pnorm(2, mean = 0, sd = 1)
-$$
-
-```{r}
-1 - pnorm(2, mean = 0, sd = 1)
-```
-
-
-```{r}
-fit <- lm(kid_score ~ mom_hs, data = kids)
-fit
 summary(fit)
 ```
-- Estimate: $\hat{\alpha}$, $\hat{\beta}$
-- Standard error of the estimate is the standard deviation of the estimator for the coefficient.
 
-```{r}
-sd(slopes$estimate)
-```
-
-
-```{r}
-## Standard deviation
-sd(c(1, 2, 200, 1000))
-sd(c(1, 1, 1, 3))
-sd(c(1, 1, 1, 1))
-# sd(11.771)
-```
-
-## Standard error of $\hat{\beta}$
-
-We compare the distributions of $\hat{\beta}$ with two different simulation. The first one using $\sigma = 19.85$ and the second one $\sigma = 40$
-
-```{r}
-## Here we simply write the whole simulation in a more compact way
-## y = 77.5 + 0 x + e
-number_of_samples <- 2000
-sample_size <- nrow(kids)
-sim_1 <- expand_grid(
-    R = 1:number_of_samples,
-    mom_hs = kids$mom_hs
-  ) %>%
-  mutate(
-    e = rnorm(number_of_samples * sample_size, mean = 0, sd = 19.85),
-    kid_score = 77.54839 + 11.77 * mom_hs + e
-  ) %>%
-  group_by(R) %>%
-  do(tidy(lm(kid_score ~ mom_hs, data = .))) %>%
-  select(R, term, estimate, statistic) %>%
-  filter(term == "mom_hs")
-sim_2 <- expand_grid(
-    R = 1:number_of_samples,
-    mom_hs = kids$mom_hs
-  ) %>%
-  mutate(
-    e = rnorm(number_of_samples * sample_size, mean = 0, sd = 40),
-    kid_score = 77.54839 + 11.77 * mom_hs + e
-  ) %>%
-  group_by(R) %>%
-  do(tidy(lm(kid_score ~ mom_hs, data = .))) %>%
-  select(R, term, estimate, statistic) %>%
-  filter(term == "mom_hs")
-```
-
-```{r}
-p1 <- sim_1 %>%
-  ggplot(aes(x = estimate, y = 0)) +
-    geom_boxplot() +
-    geom_point(position = "jitter", size = 1/3, alpha = 0.2) +
-    xlim(c(-5, 30)) +
-    labs(
-      x = "Estimate for beta",
-      y = "",
-      title = "sigma = 19.85"
-    ) +
-  scale_y_continuous(breaks = NULL)
-p2 <- sim_2 %>%
-  ggplot(aes(x = estimate, y = 0)) +
-    geom_boxplot() +
-    geom_point(position = "jitter", size = 1/3, alpha = 0.2) +
-    xlim(c(-5, 30)) +
-    labs(
-        x = "Estimate for beta",
-        y = "",
-        title = "sigma = 40"
-      ) +
-    scale_y_continuous(breaks = NULL)
-p1 + p2
-```
-
-```{r}
-sd(sim_1$estimate)
-sd(sim_2$estimate)
-```
-
-
-## Hypothesis tests
-
-Simple linear regression model:
-
-$$
-y_i = \alpha + \beta x_i + e_i, e_i \sim N(0, \sigma^2)
-$$
-
-
-### t-tests
-
-$$
-H_0: \beta = 0\\
-H_1: \beta \neq 0
-$$
-
-$$
-y_i = \alpha + \beta x_i + e_i\\
-\beta = 0 \implies y_i = \alpha + e_i
-$$
-
-Implies that the difference between the expected group average scores (in the population) is zero (no difference).
-
-$$
-\beta_0 \iff  \mu_1 = \mu_0
-$$
-
-A statistic (function of the data) that summarises the evidence against the null hypothesis.
-
-$$
-t = \frac{\hat{\beta} - 0}{\hat{SE}(\hat{\beta})}
-$$
-$t$ grows with the difference between $\hat{\beta}$ and $0$ and it grows with decreasing
-standard error.
-
-$$
-t = \frac{11.77}{2.322} = 5.069
-$$
-## Types of errors
-
-```{r}
-## Code for illustration only
-table_data <- expand_grid(
-  Reality = c("Guilty", "Not guilty"),
-  Decision = c("Convict", "Not convict")
-) %>%
-  mutate(
-    Error = c("-", "Fail to sentence a guilty person", "Sentence an innocent person", "-")
-  )
-table_data %>% 
-  knitr::kable() %>%
-  kableExtra::kable_styling()
-```
-
-```{r}
-## Code for illustration only
-table_data_h0 <- expand_grid(
-  H0 = c("True", "False"),
-  Decision = c("Not reject", "Reject")
-) %>%
-  mutate(
-    Error = c("-", "Reject a true null hypothesis", "Fail to reject a false null hypothesis", "-")
-  )
-table_data_h0 %>% 
-  knitr::kable() %>%
-  kableExtra::kable_styling()
-```
-
-How does this statistic vary from sample to sample? We will answer this with a simulation:
-
-$$
-\text{kid_score}_i = 77.55 + \underbrace{\beta}_{ = 0} \text{mom_hs}_i + e_i
-$$
-
-```{r}
-number_of_samples <- 2000
-sample_size <- nrow(kids)
-sim_h0 <- expand_grid(
-    R = 1:number_of_samples,
-    mom_hs = kids$mom_hs
-  ) %>%
-  mutate(
-    e = rnorm(number_of_samples * sample_size, mean = 0, sd = 19.85),
-    ## y = 77.5 + 0 x + e
-    kid_score = 77.54839 + 0 * mom_hs + e
-  ) %>%
-  group_by(R) %>%
-  do(tidy(lm(kid_score ~ mom_hs, data = .))) %>%
-  select(R, term, estimate, statistic) %>%
-  filter(term == "mom_hs")
-```
-
-
-```{r}
-sim_h0 %>%
-  ggplot(aes(x = estimate)) +
-    geom_boxplot() +
-    geom_point(aes(y = 0), position = "jitter", alpha = 0.2, size = 1 / 3) +
-    geom_vline(xintercept = 0, colour = "firebrick4") +
-    labs(
-      title = "Distribution of beta hat (beta = 0)",
-      x = "Slope estimates (beta hat)"
-    ) +
-    # geom_vline(xintercept = c(-1, 1), lty = 2) +
-    # geom_vline(xintercept = c(-2, 2), lty = 2, colour = "firebrick4") +
-    # geom_vline(xintercept = c(-4, 4), lty = 2, colour = "steelblue") +
-    scale_x_continuous(breaks = c(-7, -5, -2, -1, 0, 1, 2, 5, 7))
-```
-
-```{r}
-sim_h0 %>%
-  ggplot(aes(x = statistic)) +
-    geom_boxplot() +
-    geom_point(aes(y = 0), position = "jitter", alpha = 0.2, size = 1 / 3) +
-    geom_vline(xintercept = 0, colour = "firebrick4") +
-    labs(
-      title = "Distribution the t-statistic (beta = 0)",
-      x = "Values of the t-statistic"
-    ) +
-    geom_vline(xintercept = c(-1, 1), lty = 2) +
-    geom_vline(xintercept = c(-2, 2), lty = 2, colour = "firebrick4") +
-    geom_vline(xintercept = c(-4, 4), lty = 2, colour = "steelblue") +
-    scale_x_continuous(breaks = c(-4, -3, -2, -1, 0, 1, 2, 3, 4))
-```
-
-```{r}
-sum(sim_h0$statistic < -1) + sum(sim_h0$statistic > 1)
-```
-624 samples (out of 2000 samples) gave a value of the t-statistic less than -1 or greater than +1.
-
-```{r}
-624 / 2000
-```
-
-```{r}
-sum(sim_h0$statistic < -2) 
-sum(sim_h0$statistic > 2)
-```
-
-```{r}
-52 / 2000
-```
-```{r}
-## y = 77.5 + 0 x + e
-number_of_samples <- 2000
-sample_size <- nrow(kids)
-sim_h1 <- expand_grid(
-    R = 1:number_of_samples,
-    mom_hs = kids$mom_hs
-  ) %>%
-  mutate(
-    e = rnorm(number_of_samples * sample_size, mean = 0, sd = 19.85),
-    kid_score = 77.54839 + 10 * mom_hs + e
-  ) %>%
-  group_by(R) %>%
-  do(tidy(lm(kid_score ~ mom_hs, data = .))) %>%
-  select(R, term, estimate, statistic) %>%
-  filter(term == "mom_hs")
-```
-
-```{r}
-sim_h1 %>%
-  ggplot(aes(x = statistic)) +
-    geom_boxplot() +
-    geom_point(aes(y = 0), position = "jitter", alpha = 0.2, size = 1 / 3) +
-    geom_vline(xintercept = 0, colour = "firebrick4") +
-    labs(
-      title = "Distribution of the t-statistic (beta = 10)",
-      x = "Values of the t-statistic"
-    ) +
-    # geom_vline(xintercept = c(-1, 1), lty = 2) +
-    geom_vline(xintercept = c(-2, 2), lty = 2, colour = "firebrick4", lwd = 2) +
-    geom_vline(xintercept = c(-4, 4), lty = 2, colour = "steelblue", lwd = 2) +
-    scale_x_continuous(breaks = c(-2, -1, 0, 1, 2))
-```
-
-## t-distribution
-
-If the null hypothesis is true the t-statistic follows a t-distribution with $n - p$ degrees of freedoms, where
-p is the number of coefficients in the model. In our example $p = 2$ (one coefficient for the intercept and another coefficient for the slope).
-
-```{r}
-sim_h0 %>%
-  ggplot(aes(x = statistic)) +
-    geom_boxplot() +
-    geom_point(aes(y = 0), position = "jitter", alpha = 0.2, size = 1 / 3) +
-    geom_vline(xintercept = 0, colour = "firebrick4") +
-    labs(
-      title = "Distribution the t-statistic (beta = 0)",
-      x = "Values of the t-statistic"
-    ) +
-    geom_vline(xintercept = c(-1, 1), lty = 2) +
-    geom_vline(xintercept = c(-2, 2), lty = 2, colour = "firebrick4") +
-    geom_vline(xintercept = c(-4, 4), lty = 2, colour = "steelblue") +
-    scale_x_continuous(breaks = c(-4, -3, -2, -1, 0, 1, 2, 3, 4))
-```
-
-```{r}
-sim_h0 %>%
-  ggplot(aes(x = statistic)) +
-    # geom_density(color = "steelblue4") +
-    stat_function(fun = dt, n = 101, args = list(df = nrow(kids) - 2)) +
-    labs(
-      x = "t-statistic"
-    ) +
-    # geom_vline(xintercept = c(-2, 2), lty = 2)
-    geom_vline(xintercept = c(-1.965471, 1.965471), lty = 2) +
-    # geom_vline(xintercept = c(-1.648388, 1.648388), lty = 2) +
-    # geom_vline(xintercept = c(-2.587258, 2.587258), lty = 2) +
-    scale_x_continuous(breaks = c(-1.96, 1.96))
-```
-
-```{r}
-# p (probability) t( t-distribution)
-## Degrees of freedom
-pt(-1.965471, df = 434 - 2)
-1 - pt(2, df = 434 - 2)
-2 * pt(-2, df = 434 - 2)
-2 * pt(-1.965471, df = 434 - 2)
-# q (qantile) t(t-distribution)
-# Convention: alpha = 0.05
-# 0.025 = 0.05 / 2
-qt(0.025, df = 434 - 2)
-# 1 - 0.025 = 1 - 0.05 / 2
-qt(1 - 0.025, df = 434 - 2)
-alpha <- 0.05
-qt(alpha / 2, df = 434 - 2)
-qt(1 - alpha / 2, df = 434 - 2)
-```
-
-
-```{r}
-## t-distribution has one parameter called the degrees of freedom
-## The degrees of freedom equal the number of observations minus the number of model coefficients
-## For the kids dataset df = 434 (observations) - 2 (coefficients: alpha: Intercept, beta: coefficient of mom_hs)
-## At 95% significance level
-## q: quantile, t: t-distribution: computes a value of x such that the probability P(T < x) = p
-qt(0.05 / 2, df = nrow(kids) - 2)
-qt(1 - 0.05 / 2, df = nrow(kids) - 2)
-## At 99% significance level
-qt(0.01 / 2, df = nrow(kids) - 2)
-qt(1 - 0.01 / 2, df = nrow(kids) - 2)
-```
-
-
-```{r}
-td_sim <- data.frame(
-  x = seq(-4, 4)
-)
-td_sim %>%
-  ggplot(aes(x = x)) +
-  stat_function(fun = dnorm, n = 101, args = list(mean = 0, sd = 1), colour = "firebrick") +
-  stat_function(fun = dt, n = 101, args = list(df = 1), colour = "steelblue") +
-  stat_function(fun = dt, n = 101, args = list(df = 10), colour = "steelblue", lty = 2)
-```
-
-Critical values derived from the t-distribution
-
-
-
-
-<!-- Plot the distributions of scores for each simulated sample -->
-<!-- ```{r} -->
-<!-- sim_df %>% -->
-<!--   filter(R < 50) %>% -->
-<!--   ggplot( -->
-<!--     aes( -->
-<!--       x = kid_score,  -->
-<!--       group = interaction(R, mom_hs), -->
-<!--       colour = factor(mom_hs) -->
-<!--       ) -->
-<!--     ) + -->
-<!--   geom_density( -->
-<!--     size = 1/5 -->
-<!--   ) -->
-<!-- ``` -->
