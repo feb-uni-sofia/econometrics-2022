@@ -172,7 +172,7 @@ We begin by introducing the `group_by` function and we'll use it to compute the 
 Next we construct a data set using `expand_grid` to replicate the `mom_hs` column $R = 2000$ times.
 
 ```{r}
-kids$mom_hs
+# kids$mom_hs
 ```
 
 ```{r}
@@ -238,7 +238,7 @@ sim_coeff <- sim_df %>%
   group_by(R) %>%
   ## The tidy function reformats the output of lm so that it can fit in a data frame
   do(tidy(lm(kid_score ~ mom_hs, data = .))) %>%
-  select(R, term, estimate)
+  select(R, term, estimate, std.error, statistic)
 ```
 
 The data set `sim_coeff` now contains estimated coefficients ($\hat{\alpha}$ and $\hat{\beta}$) for every sample. To plot the distribution of $\hat{\beta}}$ we filter the data set so that we keep only the raw where `term == "mom_hs"` (i.e our estimates for $\beta$).
@@ -263,11 +263,151 @@ slopes %>%
     title = "Distribution of slope estimates (over 2000 samples)",
     y = ""
   ) +
-  geom_density(color = "steelblue")
- #  geom_vline(xintercept = 11.77, color = "red") +
+  geom_density(color = "steelblue") +
+  geom_vline(xintercept = 11.77, color = "red")
  #  xlim(c(0, 21))
 ```
+
+## Summary of the lm output
+
+Standard error: this is an estimate of the standard deviation of the estimator for the coefficient based on assumptions about the error term ($u_i$) in the model.
+
+The standard deviation of $\hat{\beta}_1$, computed using the simulated samples:
+
+```{r}
+sd(slopes$estimate)
+```
+
+
+Difference between two distributions with a low and a high standard deviation.
+
+```{r}
+sim_std_dev <- expand_grid(
+  sd = c(1, 2),
+  R = 1:1000,
+) %>%
+  mutate(
+    u = rnorm(n(), mean = 0, sd = sd)
+  )
+
+sim_std_dev %>%
+  ggplot(aes(x = u)) +
+    geom_histogram() +
+    facet_wrap(~sd)
+```
+
+
+
+
 ```{r}
 summary(fit)
 ```
+
+## Hypothesis testing
+
+$$
+H_0: \beta_1 = 0\\
+H_1: \beta_1 \neq 0
+$$
+$$
+y_i = \beta_0 + \beta_1 x_i + u_i
+$$
+
+If $H_0$ is true, the the model is simply
+
+$$
+y_i = \beta_0 + u_i
+$$
+
+
+t-test
+
+$$
+\text{t-statistic} = \frac{\hat{\beta}_1 - 0}{SE(\hat{\beta}_1)}
+$$
+The value of the t-statistic is small when the estimate for the coefficient is close to the value under the null hypothesis. The value of the t-statistic will be small, if the standard error of the estimator is high.
+
+$$
+t = \frac{11.77 - 0}{2.322} = 5.069
+$$
+
+Compute the value of the t-statistic for all samples in the simulation (and compare it to the value of the `statistic` column in the `sim_coef` dataset)
+
+```{r}
+sim_coeff <- sim_coeff %>%
+  mutate(
+    t_statistic = (estimate - 0) / std.error
+  )
+```
+
+
+
+```{r}
+sim_coeff %>%
+  filter(term == "mom_hs") %>%
+    ggplot(aes(x = t_statistic)) + 
+  geom_point(
+    aes(y = 0),
+    position = "jitter",
+    size = 1/2,
+    alpha = 0.5
+    ) +
+    geom_boxplot(alpha = 0.5) +
+  labs(
+    x = "Slope estimate",
+    title = "Distribution of t-statistic (over 2000 samples)",
+    y = ""
+  ) +
+  geom_density(color = "steelblue") +
+  geom_vline(xintercept = 0, color = "red")
+ #  xlim(c(0, 21))
+```
+
+$$
+H_0: \beta_1 = 10\\
+H_1: \beta_1 \neq 10
+$$
+
+t-test
+
+$$
+\text{t-statistic} = \frac{\hat{\beta}_1 - 10}{SE(\hat{\beta}_1)}
+$$
+
+$$
+t = \frac{11.77 - 10}{2.322} = 0.76
+$$
+
+```{r}
+sim_coeff <- sim_coeff %>%
+  mutate(
+    t_statistic = (estimate - 10) / std.error
+  )
+```
+
+
+
+```{r}
+sim_coeff %>%
+  filter(term == "mom_hs") %>%
+    ggplot(aes(x = t_statistic)) + 
+  geom_point(
+    aes(y = 0),
+    position = "jitter",
+    size = 1/2,
+    alpha = 0.5
+    ) +
+    geom_boxplot(alpha = 0.5) +
+  labs(
+    x = "Slope estimate",
+    title = "Distribution of t-statistic (over 2000 samples)",
+    y = ""
+  ) +
+  geom_density(color = "steelblue") +
+  geom_vline(xintercept = 0, color = "red")
+ #  xlim(c(0, 21))
+```
+
+The real coefficient equals 11.77 (it is known, because we choose it for the simulation). The hypothesis is that this coefficient is equals to 10, therefore the null hypothesis is not true. The right decision in this case is to reject the null hypothesis.
+
 
