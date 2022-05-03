@@ -303,12 +303,81 @@ sim_std_dev %>%
 summary(fit)
 ```
 
+
+## Testing a true null hypothesis
+
+$$
+H_0: \beta_1 = 11.77\\
+H_1: \beta_1 \neq 11.77
+$$
+
+t-test
+
+$$
+\text{t-statistic} = \frac{\hat{\beta}_1 - 11.77}{SE(\hat{\beta}_1)}
+$$
+
+$$
+t = \frac{11.77 - 10}{2.322} = 0.76
+$$
+
+```{r}
+sim_coeff <- sim_coeff %>%
+  mutate(
+    t_statistic = (estimate - 11.77) / std.error
+  )
+```
+
+
+
+```{r}
+sim_coeff %>%
+  filter(term == "mom_hs") %>%
+    ggplot(aes(x = t_statistic)) + 
+      geom_point(
+        aes(y = 0),
+        position = "jitter",
+        size = 1/2,
+        alpha = 0.5
+        ) +
+        geom_boxplot(alpha = 0.5) +
+      labs(
+        x = "Value of the t-statistic",
+        title = "Distribution of t-statistic under a true null hypothesis beta_1 = 11.77 (2000 samples)",
+        y = ""
+      ) +
+      geom_density(color = "steelblue") +
+      geom_vline(xintercept = 0, color = "red") +
+      geom_vline(xintercept = c(-2, 2), color = "steelblue", lty = 2) +
+      geom_vline(xintercept = c(-3, 3), color = "firebrick", lty = 2)
+     #  xlim(c(0, 21))
+```
+
+The real coefficient equals 11.77 (it is known, because we choose it for the simulation).
+
+Lets assume a rule that we reject the null hypothesis $H_0: \beta_1 = 0$ vs. $H_1: \beta_1 \neq 0$ if the value of the t-statistic is less than -2 or greater than +2.
+
+In how many samples will we wrongly reject the null hypothesis using this rule?
+
+```{r}
+testing_1 <- sim_coeff %>%
+  filter(term == "mom_hs") %>%
+  mutate(
+    ## Logical OR: |
+    wrong_decision = t_statistic < -3 | t_statistic > 3
+  )
+## Share of TRUE values
+mean(testing_1$wrong_decision)
+```
+
+
 ## Hypothesis testing
 
 $$
 H_0: \beta_1 = 0\\
 H_1: \beta_1 \neq 0
 $$
+
 $$
 y_i = \beta_0 + \beta_1 x_i + u_i
 $$
@@ -346,68 +415,122 @@ sim_coeff <- sim_coeff %>%
 sim_coeff %>%
   filter(term == "mom_hs") %>%
     ggplot(aes(x = t_statistic)) + 
-  geom_point(
-    aes(y = 0),
-    position = "jitter",
-    size = 1/2,
-    alpha = 0.5
-    ) +
-    geom_boxplot(alpha = 0.5) +
-  labs(
-    x = "Slope estimate",
-    title = "Distribution of t-statistic (over 2000 samples)",
-    y = ""
-  ) +
-  geom_density(color = "steelblue") +
-  geom_vline(xintercept = 0, color = "red")
- #  xlim(c(0, 21))
+      geom_point(
+        aes(y = 0),
+        position = "jitter",
+        size = 1/2,
+        alpha = 0.5
+        ) +
+        geom_boxplot(alpha = 0.5) +
+      labs(
+        x = "Value of the t-statistic",
+        title = "Distribution of t-statistic, wrong null hypothesis (2000 samples)",
+        y = ""
+      ) +
+      geom_density(color = "steelblue") +
+      geom_vline(xintercept = 0, color = "red") +
+      geom_vline(xintercept = c(-2, 2), color = "steelblue", lty = 2) +
+      geom_vline(xintercept = c(-3, 3), color = "firebrick", lty = 2) +
+      xlim(c(-4, 8)) +
+      scale_x_continuous(breaks = c(-3, -2, 0, 2, 3))
 ```
-
-$$
-H_0: \beta_1 = 10\\
-H_1: \beta_1 \neq 10
-$$
-
-t-test
-
-$$
-\text{t-statistic} = \frac{\hat{\beta}_1 - 10}{SE(\hat{\beta}_1)}
-$$
-
-$$
-t = \frac{11.77 - 10}{2.322} = 0.76
-$$
-
 ```{r}
-sim_coeff <- sim_coeff %>%
+testing_2 <- sim_coeff %>%
+  filter(term == "mom_hs") %>%
   mutate(
-    t_statistic = (estimate - 10) / std.error
+    ## Logical AND: &
+    wrong_decision = t_statistic < 2 & t_statistic > -2
   )
+## Share of TRUE values
+mean(testing_2$wrong_decision)
 ```
 
+# t-distribution
+
+$$
+y_i = \beta_0 + \beta_1 x_i + u_i
+$$
+
+Under some assumptions it can be shown that under the null hypothesis (this simply means that we assume the null hypothesis is true)
+
+$$
+H_0: \beta_1 = \beta_{H_0}\\
+H_1: \beta_1 \neq \beta_{H_0}\\
+$$
+
+$$
+\text{t-statistic} = \frac{\hat{\beta_1} -  \beta_{H_0}}{SE(\hat{\beta}_1)}
+$$
+
+$$
+\text{t-statistic} \underbrace{\sim}_{H_0} t(\text{df} = n - p)
+$$
+
+The t-statistic follow a t-distribution with $n - p$ degrees of freedom (parameter of the distribution), where $n$ is the number of observations in the linear model (in our example $n = 434$ kids) and $p$ is the number of coefficients in the linear equation. In our linear regression model the number of coefficients in $p = 2$: the intercept $\beta_0$, and the slope coefficient $\beta_1$.
+
+## Probabilities and quantiles of the t-distribution
 
 
 ```{r}
 sim_coeff %>%
-  filter(term == "mom_hs") %>%
-    ggplot(aes(x = t_statistic)) + 
-  geom_point(
-    aes(y = 0),
-    position = "jitter",
-    size = 1/2,
-    alpha = 0.5
+  ggplot(aes(x = t_statistic)) +
+    # geom_density(color = "steelblue4") +
+    stat_function(fun = dt, n = 101, args = list(df = nrow(kids) - 2)) +
+    labs(
+      x = "x"
     ) +
-    geom_boxplot(alpha = 0.5) +
-  labs(
-    x = "Slope estimate",
-    title = "Distribution of t-statistic (over 2000 samples)",
-    y = ""
-  ) +
-  geom_density(color = "steelblue") +
-  geom_vline(xintercept = 0, color = "red")
- #  xlim(c(0, 21))
+    # geom_vline(xintercept = c(-2, 2), lty = 2)
+    geom_vline(xintercept = c(-1.965471, 1.965471), lty = 2) +
+    # geom_vline(xintercept = c(-1.648388, 1.648388), lty = 2) +
+    # geom_vline(xintercept = c(-2.587258, 2.587258), lty = 2) +
+    scale_x_continuous(breaks = c(-1.96, 1.96)) +
+    xlim(c(-3, 3))
+```
+### Probability
+
+```{r}
+# p: probability, t: t-distribution
+pt(-2, df = 2)
 ```
 
-The real coefficient equals 11.77 (it is known, because we choose it for the simulation). The hypothesis is that this coefficient is equals to 10, therefore the null hypothesis is not true. The right decision in this case is to reject the null hypothesis.
+```{r}
+# r: random, t: t-distribution
+mean(rt(1000000, df = 2) < -2)
+```
+
+### Quantiles
+
+```{r}
+qt(p = 0.09175171, df = 2)
+```
+
+
+## Critical values in t-tests
+
+```{r}
+# 0.025 quantile of the t-distribution with 2 degrees of freedom
+qt(0.025, df = 2)
+```
+
+```{r}
+# r: random, t: t-distribution
+mean(rt(1000000, df = 2) < -4.302653)
+```
+
+A convention is to use a 5% error probability of rejecting a true null hypothesis, 
+so we use the quantiles of the t-distribution to derive critical values as follows:
+
+```{r}
+## Lower critical value: the 0.025 quantile of the t-distribution
+qt(0.025, df = 2)
+
+## Upper critical value: the 0.975 quantile of the t-distribution
+qt(1 - 0.025, df = 2)
+```
+
+
+
+
+
 
 
