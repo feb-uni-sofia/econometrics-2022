@@ -270,16 +270,22 @@ slopes %>%
 
 ## Summary of the lm output
 
+```{r}
+summary(fit)
+```
+
+
 Standard error: this is an estimate of the standard deviation of the estimator for the coefficient based on assumptions about the error term ($u_i$) in the model.
 
 The standard deviation of $\hat{\beta}_1$, computed using the simulated samples:
 
 ```{r}
+## sd: standard deviation
 sd(slopes$estimate)
 ```
 
 
-Difference between two distributions with a low and a high standard deviation.
+Difference between two distributions with a low (sd = 1) and a high (sd = 2) standard deviation.
 
 ```{r}
 sim_std_dev <- expand_grid(
@@ -317,12 +323,15 @@ $$
 \text{t-statistic} = \frac{\hat{\beta}_1 - 11.77}{SE(\hat{\beta}_1)}
 $$
 
+When is the value of the t-statistic close to zero? 1. The estimate is close to the
+value under the null hypothesis. 2. For high values of the standard error
+
 $$
-t = \frac{11.77 - 10}{2.322} = 0.76
+t = \frac{11.77 - 11.77}{2.322} = 0
 $$
 
 ```{r}
-sim_coeff <- sim_coeff %>%
+slopes <- slopes %>%
   mutate(
     t_statistic = (estimate - 11.77) / std.error
   )
@@ -331,26 +340,26 @@ sim_coeff <- sim_coeff %>%
 
 
 ```{r}
-sim_coeff %>%
-  filter(term == "mom_hs") %>%
-    ggplot(aes(x = t_statistic)) + 
-      geom_point(
-        aes(y = 0),
-        position = "jitter",
-        size = 1/2,
-        alpha = 0.5
-        ) +
-        geom_boxplot(alpha = 0.5) +
-      labs(
-        x = "Value of the t-statistic",
-        title = "Distribution of t-statistic under a true null hypothesis beta_1 = 11.77 (2000 samples)",
-        y = ""
+slopes %>%
+  ggplot(aes(x = t_statistic)) + 
+    geom_point(
+      aes(y = 0),
+      position = "jitter",
+      size = 1/2,
+      alpha = 0.5
       ) +
-      geom_density(color = "steelblue") +
-      geom_vline(xintercept = 0, color = "red") +
-      geom_vline(xintercept = c(-2, 2), color = "steelblue", lty = 2) +
-      geom_vline(xintercept = c(-3, 3), color = "firebrick", lty = 2)
-     #  xlim(c(0, 21))
+      geom_boxplot(alpha = 0.5) +
+    labs(
+      x = "Value of the t-statistic",
+      title = "Distribution of t-statistic under a true null hypothesis beta_1 = 11.77 (2000 samples)",
+      y = ""
+    ) +
+    geom_density(color = "steelblue") +
+    geom_vline(xintercept = 0, color = "red") +
+    geom_vline(xintercept = c(-2, 2), color = "steelblue", lty = 2) +
+    geom_vline(xintercept = c(-3, 3), color = "firebrick", lty = 2) +
+    scale_x_continuous(breaks = c(-3, -2, 0, 2, 3))
+   #  xlim(c(0, 21))
 ```
 
 The real coefficient equals 11.77 (it is known, because we choose it for the simulation).
@@ -360,14 +369,15 @@ Lets assume a rule that we reject the null hypothesis $H_0: \beta_1 = 0$ vs. $H_
 In how many samples will we wrongly reject the null hypothesis using this rule?
 
 ```{r}
-testing_1 <- sim_coeff %>%
-  filter(term == "mom_hs") %>%
+testing_1 <- slopes %>%
   mutate(
     ## Logical OR: |
-    wrong_decision = t_statistic < -3 | t_statistic > 3
+    wrong_decision_blue = t_statistic < -2 | t_statistic > 2,
+    wrong_decision_red = t_statistic < -3 | t_statistic > 3
   )
 ## Share of TRUE values
-mean(testing_1$wrong_decision)
+mean(testing_1$wrong_decision_blue)
+mean(testing_1$wrong_decision_red)
 ```
 
 
@@ -403,47 +413,51 @@ $$
 Compute the value of the t-statistic for all samples in the simulation (and compare it to the value of the `statistic` column in the `sim_coef` dataset)
 
 ```{r}
-sim_coeff <- sim_coeff %>%
+slopes <- slopes %>%
   mutate(
-    t_statistic = (estimate - 0) / std.error
+    t_statistic0 = (estimate - 0) / std.error
   )
 ```
 
 
 
 ```{r}
-sim_coeff %>%
-  filter(term == "mom_hs") %>%
-    ggplot(aes(x = t_statistic)) + 
-      geom_point(
-        aes(y = 0),
-        position = "jitter",
-        size = 1/2,
-        alpha = 0.5
-        ) +
-        geom_boxplot(alpha = 0.5) +
-      labs(
-        x = "Value of the t-statistic",
-        title = "Distribution of t-statistic, wrong null hypothesis (2000 samples)",
-        y = ""
+slopes %>%
+  ggplot(aes(x = t_statistic0)) + 
+    geom_point(
+      aes(y = 0),
+      position = "jitter",
+      size = 1/2,
+      alpha = 0.5
       ) +
-      geom_density(color = "steelblue") +
-      geom_vline(xintercept = 0, color = "red") +
-      geom_vline(xintercept = c(-2, 2), color = "steelblue", lty = 2) +
-      geom_vline(xintercept = c(-3, 3), color = "firebrick", lty = 2) +
-      xlim(c(-4, 8)) +
-      scale_x_continuous(breaks = c(-3, -2, 0, 2, 3))
+      geom_boxplot(alpha = 0.5) +
+    labs(
+      x = "Value of the t-statistic",
+      title = "Distribution of t-statistic, beta_1 = 0 (false)",
+      y = ""
+    ) +
+    geom_density(color = "steelblue") +
+    geom_vline(xintercept = 0, color = "red") +
+    geom_vline(xintercept = c(-2, 2), color = "steelblue", lty = 2) +
+    geom_vline(xintercept = c(-3, 3), color = "firebrick", lty = 2) +
+    xlim(c(-4, 8)) +
+    scale_x_continuous(breaks = c(-3, -2, 0, 2, 3))
 ```
 ```{r}
-testing_2 <- sim_coeff %>%
-  filter(term == "mom_hs") %>%
+testing_2 <- slopes %>%
   mutate(
     ## Logical AND: &
-    wrong_decision = t_statistic < 2 & t_statistic > -2
+    wrong_decision_blue = t_statistic0 < 2 & t_statistic0 > -2,
+    wrong_decision_red = t_statistic0 < 3 & t_statistic0 > -3
   )
 ## Share of TRUE values
-mean(testing_2$wrong_decision)
+mean(testing_2$wrong_decision_blue)
+mean(testing_2$wrong_decision_red)
 ```
+
+## How to choose critical values?
+
+Convention: choose the critical values so that the probability of rejecting a true null hypothesis is 5%.
 
 # t-distribution
 
@@ -475,7 +489,7 @@ The t-statistic follow a t-distribution with $n - p$ degrees of freedom (paramet
 sim_coeff %>%
   ggplot(aes(x = t_statistic)) +
     # geom_density(color = "steelblue4") +
-    stat_function(fun = dt, n = 101, args = list(df = nrow(kids) - 2)) +
+    stat_function(fun = dt, n = 100, args = list(df = nrow(kids) - 2)) +
     labs(
       x = "x"
     ) +
@@ -493,14 +507,17 @@ sim_coeff %>%
 pt(-2, df = 2)
 ```
 
+
 ```{r}
 # r: random, t: t-distribution
 mean(rt(1000000, df = 2) < -2)
+# mean(rt(1000000, df = 2) < -2)
 ```
 
 ### Quantiles
 
 ```{r}
+## q: quantile, t: t-distribution
 qt(p = 0.09175171, df = 2)
 ```
 
