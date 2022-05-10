@@ -485,32 +485,54 @@ The t-statistic follow a t-distribution with $n - p$ degrees of freedom (paramet
 ## Probabilities and quantiles of the t-distribution
 
 
-```{r}
-sim_coeff %>%
-  ggplot(aes(x = t_statistic)) +
-    # geom_density(color = "steelblue4") +
-    stat_function(fun = dt, n = 100, args = list(df = nrow(kids) - 2)) +
-    labs(
-      x = "x"
-    ) +
-    # geom_vline(xintercept = c(-2, 2), lty = 2)
-    geom_vline(xintercept = c(-1.965471, 1.965471), lty = 2) +
-    # geom_vline(xintercept = c(-1.648388, 1.648388), lty = 2) +
-    # geom_vline(xintercept = c(-2.587258, 2.587258), lty = 2) +
-    scale_x_continuous(breaks = c(-1.96, 1.96)) +
-    xlim(c(-3, 3))
+
+```{r, echo = FALSE}
+dt <- data.frame(
+  ## Creates a sequence of 100 numbers between -3 and 3
+  x = seq(-4, 4, length.out = 100)
+) %>%
+  mutate(
+    ## Computes the standard normal density at each of the 100 points in x
+    t_dens = dt(x, df = 434 - 2)
+  )
+
+dt %>%
+  ggplot() +
+  ## Draws the normal density line
+  geom_line(data = dt, aes(x = x, y = t_dens)) + 
+  ## Draws the shaded area under the curve between 
+  ## -1 and 1
+  geom_ribbon(
+    data = filter(dt, x < -1.96, x > 1.96), 
+    aes(x = x, y = t_dens, ymin = 0, ymax = t_dens),
+    ## Controls the transparency of the area
+    alpha = 0.5
+  ) + 
+  annotate(
+    "text",
+    x = 0,
+    y = dnorm(0) / 3,
+    label = paste("Pr(-1.96 < X < 1.96) = ", round(pt(-1.96, df = 434 - 2) - pt(1.96, df = 434 - 2), 2), sep = " ")
+  ) +
+  geom_vline(xintercept = c(-1.96, 1.96), lty = 2, colour="steelblue") +
+  geom_density(data = slopes, aes(x = t_statistic), color = "steelblue4") +
+  scale_x_continuous(breaks = c(-1.96, 0, 1.96))
 ```
 ### Probability
 
 ```{r}
 # p: probability, t: t-distribution
-pt(-2, df = 2)
+pt(-2, df = 434 - 2)
+```
+
+```{r}
+rt(1, df = 434 - 2)
 ```
 
 
 ```{r}
 # r: random, t: t-distribution
-mean(rt(1000000, df = 2) < -2)
+mean(rt(1000000, df = 434 - 2) < -2)
 # mean(rt(1000000, df = 2) < -2)
 ```
 
@@ -518,7 +540,7 @@ mean(rt(1000000, df = 2) < -2)
 
 ```{r}
 ## q: quantile, t: t-distribution
-qt(p = 0.09175171, df = 2)
+qt(p = 0.02306292, df = 434 - 2)
 ```
 
 
@@ -526,26 +548,28 @@ qt(p = 0.09175171, df = 2)
 
 ```{r}
 # 0.025 quantile of the t-distribution with 2 degrees of freedom
-qt(0.025, df = 2)
+qt(0.025, df = 434 - 2)
 ```
 
 ```{r}
 # r: random, t: t-distribution
-mean(rt(1000000, df = 2) < -4.302653)
+mean(rt(1000000, df = 434 - 2) < -1.965471)
 ```
+
 
 A convention is to use a 5% error probability of rejecting a true null hypothesis, 
 so we use the quantiles of the t-distribution to derive critical values as follows:
 
 ```{r}
 ## Lower critical value: the 0.025 quantile of the t-distribution
-qt(0.025, df = 2)
+qt(0.025, df = 434 - 2)
 
 ## Upper critical value: the 0.975 quantile of the t-distribution
-qt(1 - 0.025, df = 2)
+## lower.tail = FALSE instructs qt to calculate
+qt(0.025, df = 434 - 2, lower.tail = FALSE)
 ```
 
-
+Both critical values are equal in absolute value.
 
 
 
