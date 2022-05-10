@@ -52,6 +52,7 @@ During World war 2 combat aviation played a crucial role but also suffered heavy
 ```{r}
 library(tidyverse)
 library(patchwork)
+
 crime <- read_tsv("https://raw.githubusercontent.com/feb-uni-sofia/econometrics2020-solutions/master/data/crime.csv") %>%
   select(-I)
 ```
@@ -99,12 +100,12 @@ p1 + p2
 
 
 $$
-\underbrace{C_i}_{Crime} = \alpha + \beta \underbrace{\text{HS}_i}_{\text{Share of persons with high school degree}} + e_i
+\underbrace{C_i}_{\text{Crime}} = \beta_0 + \beta_1 \underbrace{\text{HS}_i}_{\text{Share of persons with high school degree}} + u_i, \quad i = 1,\ldots,n = 67
 $$
 
 
 ```{r}
-fit <- lm(C ~ HS, data = crime)
+fit <- lm(C ~ 1 + HS, data = crime)
 summary(fit)
 ```
 
@@ -118,17 +119,17 @@ $$
 $$
 
 $$
-\hat{C}_i[\text{number of crimes}] = -50.8[\text{number of crimes}] + 1.48 \left[\frac{\text{number of crimes}}{\text{percentage points}}\right]\text{HS}_i[\text{percentage points}]
+\hat{C}_{HS = 80}  = -50.8 + 1.48 \times 80 = 67.6\\
+\hat{C}_{HS = 50}  = -50.8 + 1.48 \times 50 = 23.2\\
 $$
 
-
 $$
-\hat{C}_{HS = 80}  = -50.8 + 1.48 \times 80\\
-\hat{C}_{HS = 79}  = -50.8 + 1.48 \times 79\\
 \hat{C}_{HS = 80} - \hat{C}_{HS = 79} = -50.8 + 1.48 \times 80 - (-50.8 + 1.48 \times 79) = 1.48\times(80 - 79) = 1.48
 $$
 
-
+$$
+\hat{C}_i[\text{number of crimes}] = -50.8[\text{number of crimes}] + 1.48 \left[\frac{\text{number of crimes}}{\text{percentage points}}\right]\text{HS}_i[\text{percentage points}]
+$$
 
 Interpretation (slope): comparing two counties: that differ by 1 percentage point on HS we expect the county with the higher HS to have 1.48 crimes more for 100,000 inhabitants.
 
@@ -164,6 +165,14 @@ crime %>%
      geom_vline(xintercept = 0, lty = 2) +
      geom_vline(xintercept = 69.49, lty = 2)
 ```
+
+```{r}
+crime %>%
+  ggplot(aes(x = U, y = HS)) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
 
 ```{r}
 ## Average value of HS: 69.48 percent
@@ -229,6 +238,9 @@ predict(fit, newdata = newdata_multiple_values, se.fit = TRUE, interval = "confi
 $$
 \hat{C}_{HS = 100} = 97.74081
 $$
+$$
+C_i = \beta_0 + \beta_1 U_i + u_i
+$$
 
 
 ```{r}
@@ -252,16 +264,12 @@ crime %>%
 
 
 $$
-C_i = \alpha + \beta_1 \text{HS}_i  + \beta_2 \text{U}_i + e_i
+C_i = \beta_0 + \beta_1 \text{HS}_i  + \beta_2 \text{U}_i + u_i
 $$
 
 ```{r}
-fit_U_HS <- lm(C ~ HS + U, data = crime)
+fit_U_HS <- lm(C ~ 1 + HS + U, data = crime)
 summary(fit_U_HS)
-```
-
-```{r}
- 
 ```
 
 $$
