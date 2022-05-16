@@ -50,6 +50,8 @@ During World war 2 combat aviation played a crucial role but also suffered heavy
 # Two continuous predictors
 
 ```{r}
+install.packages("patchwork")
+
 library(tidyverse)
 library(patchwork)
 
