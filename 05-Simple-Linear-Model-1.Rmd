@@ -496,14 +496,14 @@ dt <- data.frame(
     t_dens = dt(x, df = 434 - 2)
   )
 
-dt %>%
-  ggplot() +
+
+ggplot() +
   ## Draws the normal density line
   geom_line(data = dt, aes(x = x, y = t_dens)) + 
   ## Draws the shaded area under the curve between 
   ## -1 and 1
   geom_ribbon(
-    data = filter(dt, x < -1.96, x > 1.96), 
+    data = filter(dt, x > -1.96, x < 1.96), 
     aes(x = x, y = t_dens, ymin = 0, ymax = t_dens),
     ## Controls the transparency of the area
     alpha = 0.5
@@ -515,7 +515,7 @@ dt %>%
     label = paste("Pr(-1.96 < X < 1.96) = ", round(pt(-1.96, df = 434 - 2) - pt(1.96, df = 434 - 2), 2), sep = " ")
   ) +
   geom_vline(xintercept = c(-1.96, 1.96), lty = 2, colour="steelblue") +
-  geom_density(data = slopes, aes(x = t_statistic), color = "steelblue4") +
+  # geom_density(data = slopes, aes(x = t_statistic), color = "steelblue4") +
   scale_x_continuous(breaks = c(-1.96, 0, 1.96))
 ```
 ### Probability
