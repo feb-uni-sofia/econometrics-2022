@@ -1,5 +1,8 @@
 # Econometrics 2022 exercise classes
 
+The replacement class for the monday English language class is
+May 19-th 15:00-16:30.
+
 ## Schedule
 
 - Monday, 10:00-11:30 (English), Skype link: [https://join.skype.com/CyJqTdr9yNFD](https://join.skype.com/CyJqTdr9yNFD)
