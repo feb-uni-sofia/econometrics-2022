@@ -69,7 +69,6 @@ Variables description:
 
 ```{r}
 ggpairs(crime[, -1])
-?ggpairs
 ```
 
 
@@ -166,13 +165,34 @@ fit_U <- lm(C ~ 1 + U, data = crime)
 summary(fit_U)
 ```
 
+Initial expectation: more crime in more urbanised counties.
+
+Estimated regression equation:
 $$
 \hat{C}_i = 24.5 + 0.56 U_i
 $$
+The coefficient of U is positive. This implies that expected crime rate $\hat{C}$ increases
+with increasing values of $U$ (degree of urbanisation).
 
+Homework: difference in expected crime rates for two counties with $U = 80$ and $U = 50$.
 
 
 ## Third model: crime, education, and urbanisation
+
+
+```{r}
+median(crime$U)
+```
+
+```{r}
+crime_rural <- crime %>% filter(U < 45)
+crime_urban <- crime %>% filter(U > 45)
+```
+
+```{r}
+lm(C ~ 1 + HS, data = crime_rural)
+lm(C ~ 1 + HS, data = crime_urban)
+```
 
 
 $$
@@ -183,23 +203,24 @@ $$
 fit_U_HS <- lm(C ~ 1 + HS + U, data = crime)
 summary(fit_U_HS)
 ```
-
+Estimated regression equation:
 $$
 \hat{C}_i = 59.1 -0.58 \text{HS}_i  + 0.68 \text{U}_i
 $$
 
 $$
-\hat{C}_{HS = 80} = 59.1 - 0.5834 \cdot 80 + 0.68 U = 12.4 + 0.68 U\\
-\hat{C}_{HS = 50} = 59.1 - 0.5834 \cdot 50 + 0.68 U = 29.93+ 0.68 U
+\hat{C}_{HS = 80} = 59.1 - 0.58 \cdot 80 + 0.68 U = 12.4 + 0.68 U \\
+\hat{C}_{HS = 50} = 59.1 - 0.58 \cdot 50 + 0.68 U = 29.93+ 0.68 U
 $$
 
 $$
-\hat{C}_{HS = 80, U = 50} = 59.1 - 0.5834 \cdot 80 + 0.68 U = 12.4 + 0.68 \cdot 50\\
-\hat{C}_{HS = 50, U = 50} = 59.1 - 0.5834 \cdot 50 + 0.68 U = 29.93+ 0.68 \cdot 50 \\
-\hat{C}_{HS = 80, U = 50} - \hat{C}_{HS = 50, U = 50} = 12.4 - 29.93 = -16.9
+\hat{C}_{HS = 80, U = 50} = 59.1 - 0.58 \cdot 80 + 0.68 U = 12.4 + 0.68 \cdot 50 = 46.4\\
+\hat{C}_{HS = 50, U = 50} = 59.1 - 0.58 \cdot 50 + 0.68 U = 29.93+ 0.68 \cdot 50 = 63.9\\
+\hat{C}_{HS = 80, U = 50} - \hat{C}_{HS = 50, U = 50} = 12.4 - 29.93 = -16.9 \approx -0.58 \cdot \underbrace{30}_{\Delta HS = 80 - 50} \quad \text{approx. due to rounding}
 $$
 
 Homework: compute the difference:
+
 $$
 \hat{C}_{HS = 80, U = 10} - \hat{C}_{HS = 50, U = 10} = ?
 $$
@@ -223,22 +244,31 @@ a county where HS = 0.
 crime %>%
   ggplot(aes(x = HS, y = C)) +
     geom_point() +
-    geom_abline(intercept = -50.8, slope = 1.48) + 
     xlim(c(0, 100)) +
     ylim(c(-60, 120)) +
-    geom_vline(xintercept = c(0, mean(crime$HS)), color = "steelblue", lty = 2)
+    geom_abline(intercept = -50.8, slope = 1.48)
+
+#     geom_vline(xintercept = c(0, mean(crime$HS)), color = "steelblue", lty = 2)
 ```
 Centered predictors (x-variables)
 
 $$
-C_i = \beta_0 + \beta_1 (\text{HS}_i - \overline{HS})   + \beta_2 \text{U}_i + e_i
+C_i = \beta_0 + \beta_1 (\text{HS}_i - \overline{HS}) + e_i
 $$
 mean of $HS_i - \overline{HS} = 0$
 
+```{r}
+crime <- crime %>%
+  mutate(
+    HS_centered = HS - mean(HS)
+  )
+mean(crime$HS)
+mean(crime$HS_centered)
+```
 
 ```{r}
 ## I: identity function
-fit_HS_centered <- lm(C ~ 1 + I(HS - mean(HS)), data = crime)
+fit_HS_centered <- lm(C ~ 1 + HS_centered, data = crime)
 fit_HS_centered
 ```
 
@@ -246,12 +276,12 @@ $$
 \hat{C}_i = 52.4 + 1.48 (\text{HS}_i - \overline{HS})
 $$
 
-```{r}
-crime <- crime %>%
-  mutate(
-    HS_centered = HS - mean(HS)
-  )
-```
+
+
+$$
+\text{-2.12e-16} = -2.12 \cdot 10^{-16} = \frac{-2.12}{10^{16}}
+$$
+
 
 Homework: fit the model with HS_centered and compare the results with the `I(HS - mean(HS))` model.
 
