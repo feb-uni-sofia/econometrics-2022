@@ -288,10 +288,36 @@ an average share of persons with a school degree ($\text{HS} = \overline{HS}$)
 Predict the crime rate in 3 hypothetical counties: 
 
 $$
-C_{HS = 0} = ?\\
-C_{HS = \overline{HS}} = ?\\
-C_{HS = 100} = ? 
+\hat{C}_{HS = 0} = -50.8 \\
+\hat{C}_{HS = \overline{HS}} = 52.04 \approx 52.4030 \\
+\hat{C}_{HS = 100} = 97.2
 $$
+
+```{r}
+crime %>%
+  ggplot(aes(x = HS, y = C)) +
+    geom_point() +
+    xlim(c(0, 100)) +
+    ylim(c(-60, 120)) +
+    geom_abline(intercept = -50.8, slope = 1.48) +
+    geom_vline(xintercept = c(0, mean(crime$HS), 100), color = "steelblue", lty = 2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Using the original (non-centered predictor) equation:
 
@@ -320,7 +346,7 @@ newdata <- tribble(
   0,
   69.48,
   100
-)
+  )
 
 predict(fit, newdata = newdata, se.fit = TRUE)
 ```
@@ -338,11 +364,7 @@ predict(fit, newdata = newdata, se.fit = TRUE)
 crime %>%
   ggplot(aes(x = HS, y = C)) +
     geom_point() +
-    xlim(c(0, 100)) +
-    ylim(c(-60, 120)) +
-    geom_smooth(method = "lm") +
-    geom_abline(intercept = -50.8, slope = 1.48) +
-    geom_vline(xintercept = c(0, mean(crime$HS), 100), color = "steelblue", lty = 2)
+    geom_smooth(method = "lm")
 ```
 
 ```{r}
