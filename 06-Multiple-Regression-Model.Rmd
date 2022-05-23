@@ -265,25 +265,93 @@ crime <- crime %>%
 mean(crime$HS)
 mean(crime$HS_centered)
 ```
+$$
+\text{-2.12e-16} = -2.12 \cdot 10^{-16} = \frac{-2.12}{10^{16}}
+$$
 
 ```{r}
 ## I: identity function
 fit_HS_centered <- lm(C ~ 1 + HS_centered, data = crime)
-fit_HS_centered
+summary(fit_HS_centered)
 ```
 
 $$
 \hat{C}_i = 52.4 + 1.48 (\text{HS}_i - \overline{HS})
 $$
+When is the expected crime rate equal to to the intercept (52.4)? => When $\text{HS}_i - \overline{HS} = 0$, i.e. it estimates the expected crime for a county with
+an average share of persons with a school degree ($\text{HS} = \overline{HS}$)
 
 
+
+## Predictions
+
+Predict the crime rate in 3 hypothetical counties: 
 
 $$
-\text{-2.12e-16} = -2.12 \cdot 10^{-16} = \frac{-2.12}{10^{16}}
+C_{HS = 0} = ?\\
+C_{HS = \overline{HS}} = ?\\
+C_{HS = 100} = ? 
 $$
 
+Using the original (non-centered predictor) equation:
 
-Homework: fit the model with HS_centered and compare the results with the `I(HS - mean(HS))` model.
+$$
+\hat{C}_i = -50.8 + 1.48 \text{HS}_i
+$$
+
+$$
+\hat{C}_{HS = 0} = -50.8\\
+\hat{C}_{HS = \overline{HS}} = -50.8 + 1.48 \cdot 69.5 = 52.06 \\
+\hat{C}_{HS = 100} = -50.8 + 1.48 \cdot 100 = 97.2
+$$
+
+Standard errors of predictions?
+
+$$
+SE(\hat{C}_{HS = 0}) = 24.45\\
+SE(\hat{C}_{HS = \overline{HS}}) = 3.06 \\
+SE(\hat{C}_{HS = 100}) = 11.08
+$$
+
+```{r}
+## First argument: model fit object from lm
+newdata <- tribble(
+  ~HS,
+  0,
+  69.48,
+  100
+)
+
+predict(fit, newdata = newdata, se.fit = TRUE)
+```
+
+```{r}
+## Documentation
+?predict.lm
+```
+
+
+
+
+
+```{r}
+crime %>%
+  ggplot(aes(x = HS, y = C)) +
+    geom_point() +
+    xlim(c(0, 100)) +
+    ylim(c(-60, 120)) +
+    geom_smooth(method = "lm") +
+    geom_abline(intercept = -50.8, slope = 1.48) +
+    geom_vline(xintercept = c(0, mean(crime$HS), 100), color = "steelblue", lty = 2)
+```
+
+```{r}
+crime %>%
+  ggplot(aes(x = HS, y = C)) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
 
 ## Hypothesis testing
 
