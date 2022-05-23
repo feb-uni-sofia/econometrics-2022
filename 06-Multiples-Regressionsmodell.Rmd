@@ -50,8 +50,10 @@ During World war 2 combat aviation played a crucial role but also suffered heavy
 # Two continuous predictors
 
 ```{r}
-# install.packages("patchwork")
+# install.packages(("patchwork", "plotly", "GGally"))
 
+library(plotly)
+library(GGally)
 library(tidyverse)
 library(patchwork)
 
@@ -64,6 +66,10 @@ Variables description:
 - `C`: number of crimes per 100,000 inhabitants
 - `HS`: share of high school graduates
 - `U`: share of persons living in urban areas
+
+```{r}
+ggpairs(crime[, -1])
+```
 
 
 ```{r}
@@ -202,4 +208,99 @@ $$
 Wenn wir zwei gemeinden mit dem gleichen Grad der Urbanisierung vergleichen, 
 erwarten wir weniger Kriminalität in der Gemeinde mit gem größeren Anteil 
 an Personen mit Schulabschluß.
+
+
+## Interpretation der Konstanten
+
+
+```{r}
+summary(fit)
+```
+
+
+$$
+\hat{C}_i = -50.8 + 1.48 \text{HS}_i
+$$
+Wenn $HS = 0$ ist, dann ist die erwartete Anzahl von K-Taten gleich $-50.8$.
+
+```{r}
+mean(crime$HS)
+```
+
+$$
+\overline{HS} = 69.5 \quad \text{ Mittelwert von HS}\\
+\hat{C}_{HS = \overline{HS}} = -50.8 + 1.48 \cdot 69.5 = 52.06\\
+SE(\hat{C}_{HS = \overline{HS}}) = ?
+$$
+Standardfehler der Schätzung für eine Gemeinde mit $HS = 0$:
+
+$$
+\hat{C}_{HS = 0} = -50.8 + 1.48 (\text{HS} - 0)\\
+\hat{C}_{HS = 100} = 97.74 + 1.48 (\text{HS} - 100) \\
+SE(\hat{C}_{HS = 100})= 11.08 \\
+\hat{C}_{HS = \overline{HS}} = 52.4 + 1.48 (\text{HS} - \overline{HS}) \\
+SE(\hat{C}_{HS = \overline{HS}}) = 3.0692\\
+$$
+```{r}
+crime <- crime %>%
+  mutate(
+    ## 
+    ## HS_centered1 = HS - 69.48955,
+    HS_centered = HS - mean(HS)
+  )
+```
+
+```{r}
+fit_centered <- lm(C ~ 1 + HS_centered, data = crime)
+summary(fit_centered)
+```
+
+```{r}
+?predict
+?predict.lm
+```
+
+
+```{r}
+newdata <- tribble(
+  ~HS,
+  0,
+  69.48955,
+  100
+)
+
+predict(fit, newdata = newdata, se.fit = TRUE)
+```
+
+
+```{r}
+crime %>%
+  ggplot(aes(x = HS, y = C)) +
+    geom_point() +
+    xlim(c(0, 100)) +
+    ylim(c(-60, 120)) +
+    geom_abline(intercept = -50.8, slope = 1.48) +
+    geom_vline(xintercept = c(0, mean(crime$HS), 100), color = "steelblue", lty = 2)
+```
+```{r}
+crime %>%
+  ggplot(aes(x = HS, y = C)) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+$$
+SE(\hat{C}_{HS = 0}) = 24.4507
+$$
+
+
+$$
+\hat{C}_{HS = 0} = -50.8
+$$
+Standardfehler der Schätzung für eine Gemeinde mit $HS = 0$:
+
+$$
+SE(\hat{C}_{HS = 0}) = 24.4507
+$$
+
 
