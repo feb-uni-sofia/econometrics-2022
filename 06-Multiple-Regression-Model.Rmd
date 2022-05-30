@@ -71,7 +71,6 @@ Variables description:
 ggpairs(crime[, -1])
 ```
 
-
 ```{r}
 ## Code for illustration purposes only
 us_counties <- map_data("county")
@@ -226,6 +225,7 @@ $$
 $$
 
 ## Interpretation of the coefficients
+
 
 
 ```{r}
@@ -449,6 +449,198 @@ ggplot() +
   # geom_density(data = slopes, aes(x = t_statistic), color = "steelblue4") +
   scale_x_continuous(breaks = c(-1.99, 0, 1.99))
 ```
+
+
+### p-value (two-sided alternative)
+
+The value of t-statistic that we obtained is -1.235. What is probability (under the distribution of the statistic under $H_0$) to obtain a value of the t-statistic that is more _extreme_ than the observed one.
+In the case of a two-sided alternative $H_1: \beta_1 \neq 0$ _extreme_ means values of the t-statistic that are far away from zero (both positive and negative).
+
+$$
+\text{p-value} = P(t < -1.235) + P(t > 1.235)
+$$
+
+
+```{r, echo = FALSE}
+dt <- data.frame(
+  ## Creates a sequence of 100 numbers between -3 and 3
+  x = seq(-4, 4, length.out = 100)
+) %>%
+  mutate(
+    ## Computes the standard normal density at each of the 100 points in x
+    t_dens = dt(x, df = 67 - 3)
+  )
+
+
+ggplot() +
+  ## Draws the normal density line
+  geom_line(data = dt, aes(x = x, y = t_dens)) + 
+  # Draws the shaded area under the curve between
+  # -1 and 1
+  geom_ribbon(
+    data = filter(dt, x > -1.99, x < 1.99),
+    aes(x = x, y = t_dens, ymin = 0, ymax = t_dens),
+    ## Controls the transparency of the area
+    alpha = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 0,
+    y = dnorm(0) / 3,
+    label = paste("Pr(-1.99 < X < 1.99) = ", round(pt(1.99, df = 67 - 3) - pt(-1.99, df = 67 - 3), 2), sep = " ")
+  ) +
+  geom_vline(xintercept = c(-1.235, 1.235), lty = 2, colour="steelblue") +
+  geom_vline(xintercept = c(-1.99, 1.99), lty = 2, colour="black") +
+  geom_vline(xintercept = c(-2.5, 2.5), lty = 2, colour="firebrick") +
+  # geom_density(data = slopes, aes(x = t_statistic), color = "steelblue4") +
+  scale_x_continuous(breaks = c(-2.5, -1.99, -1.235, 1.235, 0, 1.99, 2.5)) +
+  labs(
+    title = "Density of a t-distribution with 64 df",
+    y = ""
+  )
+```
+
+```{r}
+## p: probability, t: t-distribution
+## P(t < -1.235) = 0.11
+pt(-1.235, df = 67 - 3)
+
+## P(t > 1.235)
+pt(1.235, df = 67 - 3, lower.tail = FALSE)
+```
+
+$$
+P(t < -1.235) + P(t > 1.235) = 2P(t < -1.235) = 2 \cdot 0.1106727 \approx 0.2213
+$$
+
+```{r}
+2 * pt(-2.5, df = 67 - 3)
+```
+
+With a probability of wrong rejection of a true null hypothesis at 5%, we would reject the null hypothesis
+for p-values that are less than 5%.
+
+
+## p-value (one-sided alternative)
+
+$$
+H_0: \beta_1 = 0 \\
+H_1: \beta_1 > 0
+$$
+
+$$
+t = \frac{-0.5834 - 0}{0.4725} = -1.235
+$$
+
+Distribution of the t-statistic under the null hypothesis:
+
+$$
+t \sim t(df = 67 - 3)
+$$
+This time, because the alternative is one-sided we would reject for large positive values
+of the t-statistic. Therefore we compute only one critical value:
+
+```{r}
+## Critical value
+qt(0.05, lower.tail = FALSE, df = 67 - 3)
+```
+
+The value of the t-statistic is -1.235 < 1.669, therefore we cannot reject the null hypothesis.
+
+```{r, echo = FALSE}
+dt <- data.frame(
+  ## Creates a sequence of 100 numbers between -3 and 3
+  x = seq(-4, 4, length.out = 100)
+) %>%
+  mutate(
+    ## Computes the standard normal density at each of the 100 points in x
+    t_dens = dt(x, df = 67 - 3)
+  )
+
+
+ggplot() +
+  ## Draws the normal density line
+  geom_line(data = dt, aes(x = x, y = t_dens)) + 
+  # Draws the shaded area under the curve between
+  # -1 and 1
+  geom_ribbon(
+    data = filter(dt, x > 1.669013),
+    aes(x = x, y = t_dens, ymin = 0, ymax = t_dens),
+    ## Controls the transparency of the area
+    alpha = 0.5
+  ) +
+  annotate(
+    "text",
+    x = 0,
+    y = dnorm(0) / 3,
+    label = paste("Pr(X > 1.67) = ", 0.05, sep = " ")
+  ) +
+  geom_vline(xintercept = c(-1.235), lty = 2, colour="steelblue") +
+  geom_vline(xintercept = c(1.669013), lty = 2, colour="black") +
+  # geom_density(data = slopes, aes(x = t_statistic), color = "steelblue4") +
+  scale_x_continuous(breaks = c(-2.5, -1.99, -1.235, 0, 1.669013)) +
+  labs(
+    title = "Density of a t-distribution with 64 df",
+    y = ""
+  )
+```
+The p-value for this alternative is:
+
+$$
+\text{p-value} = P(t > -1.235) = 0.89
+$$
+```{r}
+pt(-1.235, lower.tail = FALSE, df = 67 - 3)
+```
+
+
+$$
+H_0: \beta_1 = 0\\
+H_1: \beta_1 < 0
+$$
+
+$$
+\text{p-value} = P(t < -1.235) = 0.11
+$$
+
+```{r}
+pt(-1.235, df = 67 - 3)
+```
+
+p-value > 0.05, therefore we cannot reject the null hypothesis at a 5% probability of wrong rejection (of a true null hypothesis).
+
+
+## Linearity
+
+Real structure:
+
+$$
+y_i = 3 + x^2 + u_i, \quad u_i \sim N(0, 500^2)
+$$
+
+```{r}
+dt <- tibble(
+  x = (-100):100
+) %>%
+  mutate(
+    y = 3 + x ^ 2 + rnorm(n(), 0, 500)
+  )
+```
+
+```{r}
+dt %>%
+  ggplot(aes(x = x, y = y)) + 
+    geom_point() + 
+    geom_smooth(method = "lm") +
+    geom_smooth()
+```
+
+```{r}
+fit_xy <- lm(y ~ 1 + x + I(x^2), data = dt)
+summary(fit_xy)
+```
+
+
 
 
 
