@@ -382,6 +382,7 @@ C_i = \beta_0 + \beta_1 \text{HS}_i  + \beta_2 \text{U}_i + e_i
 $$
 
 ```{r}
+# options(scipen = 1000000)
 fit_U_HS <- lm(C ~ 1 + HS + U, data = crime)
 summary(fit_U_HS)
 ```
@@ -617,31 +618,61 @@ Real structure:
 $$
 y_i = 3 + x^2 + u_i, \quad u_i \sim N(0, 500^2)
 $$
+Linear model
+$$
+y_i = \beta_0 + \beta_1 x^2 + u_i, \quad u_i \sim N(0, 500^2)
+$$
+Example of a non-linear model
+$$
+y_i = \beta + \beta^2 x + u_i
+$$
+
 
 ```{r}
 dt <- tibble(
   x = (-100):100
 ) %>%
   mutate(
-    y = 3 + x ^ 2 + rnorm(n(), 0, 500)
+    y = 10000 + x ^ 2 + rnorm(n(), 0, 500)
   )
 ```
+
 
 ```{r}
 dt %>%
   ggplot(aes(x = x, y = y)) + 
-    geom_point() + 
-    geom_smooth(method = "lm") +
-    geom_smooth()
+    geom_point() +
+    geom_abline(slope = -0.1944, intercept = 3309.5337)
+ #    geom_smooth()
 ```
 
+Fit a linear (in x) model to the data
+$$
+y_i = \beta_0 + \beta_1 x_i + u_i
+$$
+
 ```{r}
-fit_xy <- lm(y ~ 1 + x + I(x^2), data = dt)
+fit_xy <- lm(y ~ 1 + x, data = dt)
 summary(fit_xy)
 ```
 
+Fit a linear (in x) model to the data
+$$
+y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + u_i
+$$
+```{r}
+I("fgsdfsdf")
+```
 
 
+```{r}
+fit_x2y <- lm(y ~ 1 + x + I(x ^ 2), data = dt)
+summary(fit_x2y)
+```
+
+$$
+y_i = 3 + 0\cdot x + x^2 + u_i, \quad u_i \sim N(0, 500^2)
+$$
 
 
 <!-- $$ -->
