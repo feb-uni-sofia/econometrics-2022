@@ -1,7 +1,35 @@
-# Econometrics 2022 exercise classes
 
-The replacement class for the monday English language class is
-May 19-th 15:00-16:30.
+# Homework
+
+Please open the homework registration link: https://classroom.github.com/a/u36_R321
+
+Requirements:
+- You need a working (github.com)[github.com] account as you will be asked to 
+login to github.com
+- The first member of your group should create a team when he or she visits the
+registration link. The other team members can select that team and join it
+- After you select your team, you will be redirected to a page showing a link
+to your homework github repository.
+- The github repository will be empty initially. I will upload the assignments
+when all the teams are formed, then you can find it under a "Homework_xxx.Rmd"
+file in your repository.
+- When your assignment is available, you should download it from the repository
+and open it with R-Studio.
+- Don't forget to write the student ids and the names of the group members
+in the solutions file.
+- When you are finished with the solution, please upload it back into that repository.
+To do that, open the original assignment file (on the repository page), find the
+pencil icon and click on it. This will put the file in edit mode. Copy the contents of 
+your solution, and paste it into the github editor, replacing the original content.
+Click on the green "Commit" button at the bottom of the page. Verify that your
+solution is correctly uploaded by opening file in github one more time.
+- Verify that your code works by clicking on the "Knit" button in R-Studio. It
+should compile a web-page with your solution. If the web-page does not appear, 
+this means that there are errors in your code that need to be fixed.
+
+
+
+
 
 ## Schedule
 
@@ -10,9 +38,6 @@ May 19-th 15:00-16:30.
 - Monday, 17:00-18:30 (German), Skype link: [https://join.skype.com/MUONm8Y2EDv1](https://join.skype.com/MUONm8Y2EDv1)
 - Tuesday, 15:00-16-30 (Bulgarian), Skype link: [https://join.skype.com/IfDdQP4IJIRy](https://join.skype.com/IfDdQP4IJIRy)
 
-## Grading
-
-TBA
 
 ## Class notes
 
