@@ -4,9 +4,11 @@
 Please open the homework registration link: https://classroom.github.com/a/u36_R321
 
 Requirements:
+
 - You need a working (github.com)[github.com] account as you will be asked to 
 login to github.com
-- The first member of your group should create a team when he or she visits the
+- The homework is a group assignment. Each group has a limit of 5 members. 
+The first member of your group should create a team when he or she visits the
 registration link. The other team members can select that team and join it
 - After you select your team, you will be redirected to a page showing a link
 to your homework github repository.
@@ -26,6 +28,7 @@ solution is correctly uploaded by opening file in github one more time.
 - Verify that your code works by clicking on the "Knit" button in R-Studio. It
 should compile a web-page with your solution. If the web-page does not appear, 
 this means that there are errors in your code that need to be fixed.
+- You need to submit only _one_ solution for the whole team.
 
 
 
